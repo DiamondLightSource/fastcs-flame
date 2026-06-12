@@ -16,7 +16,7 @@ class SpectrometerTelecommunicator:
     def connect(self):
         # TODO: add error handling here
         self.socket_obj = socket()
-        self.socket_obj.bind((self.ip, self.port))
+        self.socket_obj.connect((self.ip, self.port))
         # TODO: listen for initial message from device and validate??
 
     def _small_query(self, query: str) -> str:
