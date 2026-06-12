@@ -46,3 +46,16 @@ class SpectrometerTelecommunicator:
         # TODO: Add a failsafe incase transmission is stopped half way through
         # TODO: look for acknowledgement characters here
         return response
+
+    def get_version(self) -> int:
+        version_str = self._small_query("v")
+        version_int = int(version_str)
+        return version_int
+
+    def set_integration_time(self, integration_time: int):
+        self._small_query("I" + str(integration_time))
+
+    def get_integration_time(self) -> int:
+        integration_time_str = self._small_query("?I")
+        integration_time_int = int(integration_time_str)
+        return integration_time_int
