@@ -35,11 +35,13 @@ class IntegrationTimeIO(AttributeIO[int, IntegrationTimeIORef]):
 class FlameController(Controller):
     spec_tel_obj: SpecTel
 
-    integration_time: IntegrationTimeIO
+    integration_time: AttrRW
 
     def __init__(self, spec_tel_obj: SpecTel):
         super().__init__(ios=[IntegrationTimeIO()])
 
         self.spec_tel_obj = spec_tel_obj
 
-        AttrRW(Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj))
+        self.integration_time = AttrRW(
+            Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
+        )
