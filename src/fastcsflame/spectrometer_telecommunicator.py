@@ -47,13 +47,14 @@ class SpectrometerTelecommunicator:
 
         self.socket_obj.send(query.encode("ascii"))
 
+        # Switch to bytearray??
         response_raw: bytes = b""
         last_response_raw_section: bytes = b""
 
         # Keep on recieving information until a response section contains the end signal
         while last_response_raw_section.rfind(end_signal) == -1:
             last_response_raw_section = self.socket_obj.recv(self.recieve_buffer_size)
-            response_raw.join([last_response_raw_section])
+            response_raw += last_response_raw_section
         # TODO: Add a failsafe incase transmission is stopped half way through
 
         return self._extract_response(response_raw)
