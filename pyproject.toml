@@ -13,7 +13,9 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 description = "EPICS driver for the OceanOptics flame mini spectrometer"
-dependencies = [] # Add project dependencies here, e.g. ["click", "numpy"]
+dependencies = [
+    "fastcs[epicsca]",
+] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
@@ -46,7 +48,7 @@ version_file = "src/fastcsflame/_version.py"
 
 [tool.pyright]
 typeCheckingMode = "standard"
-reportMissingImports = false # Ignore missing stubs in imported modules
+reportMissingImports = false  # Ignore missing stubs in imported modules
 
 [tool.pytest.ini_options]
 # Run pytest with all our checkers, and don't spam us with massive tracebacks on error
