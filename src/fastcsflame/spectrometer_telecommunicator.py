@@ -59,3 +59,21 @@ class SpectrometerTelecommunicator:
         integration_time_str = self._small_query("?I")
         integration_time_int = int(integration_time_str)
         return integration_time_int
+
+    def scan(self) -> list[int]:
+        scan_result_str = self._big_query("S")
+        return self._scan_str_to_list(scan_result_str)
+
+    def get_last_scan(self) -> list[int]:
+        scan_result_str = self._big_query("Z")
+        return self._scan_str_to_list(scan_result_str)
+
+    @staticmethod
+    def _scan_str_to_list(scan_result_str: str) -> list[int]:
+        # start with scan_results
+        # split on " " to separate the numbers and put them in a list
+        # get rid of the first 6 numbers and last 3
+        #   as this is just meta data and handshakes
+        # convert each one to an integer in a string comprehension
+        data = [int(s) for s in scan_result_str.split(" ")[7:-4]]
+        return data
