@@ -67,7 +67,7 @@ class SpectrometerTelecommunicator:
         # The actual response text is after the acknowledgement
         # TODO: Check for invalid responses
         # (no ack, query not echoed correctly, invalid end characters)
-        response_raw_split = response_raw.split(b"\06")
+        response_raw_split = response_raw.split(b"\x06")
         # query_echo_raw = response_raw_split[0]
         query_response_raw = response_raw_split[1]
 
