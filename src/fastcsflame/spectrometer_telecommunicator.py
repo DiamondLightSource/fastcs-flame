@@ -38,6 +38,29 @@ class SpectrometerTelecommunicator:
 
         response_raw = self.socket_obj.recv(self.recieve_buffer_size)
 
+        return self._extract_response(response_raw)
+
+    def _big_query(self, query: str, end_signal: bytes = b"65533") -> str:
+        if self.socket_obj is None:
+            # TODO: add handling when socket is None
+            return ""
+
+        self.socket_obj.send(query.encode("ascii"))
+
+        response_raw: bytes = b""
+        last_response_raw_section: bytes = b""
+
+        # Keep on recieving information until a response section contains the end signal
+        while last_response_raw_section.rfind(end_signal) == -1:
+            last_response_raw_section = self.socket_obj.recv(self.recieve_buffer_size)
+            response_raw.join([last_response_raw_section])
+        # TODO: Add a failsafe incase transmission is stopped half way through
+
+        return self._extract_response(response_raw)
+
+    @staticmethod
+    def _extract_response(response_raw: bytes) -> str:
+
         # Splits the response on the ascii acknowledgement character (06 in hex)
         # (This assumes we get an acknowledgement)
         # The query is returned back before the acknowledgement
@@ -57,21 +80,6 @@ class SpectrometerTelecommunicator:
             return response_str
 
         return response_str[:-5]
-
-    def _big_query(self, query: str, end_string="65533") -> str:
-        if self.socket_obj is None:
-            # TODO: add handling when socket is None
-            return ""
-
-        self.socket_obj.send(query.encode("ascii"))
-
-        response = ""
-        while end_string not in response:
-            raw_response = self.socket_obj.recv(self.recieve_buffer_size)
-            response.join(raw_response.decode("ascii"))
-        # TODO: Add a failsafe incase transmission is stopped half way through
-        # TODO: look for acknowledgement characters here
-        return response
 
     def get_version(self) -> int:
         version_str = self._small_query("v")
