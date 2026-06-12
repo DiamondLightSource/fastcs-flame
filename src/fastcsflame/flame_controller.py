@@ -45,3 +45,7 @@ class FlameController(Controller):
         self.integration_time = AttrRW(
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
         )
+
+    async def connect(self):
+        await super().connect()
+        self.spec_tel_obj.connect()
