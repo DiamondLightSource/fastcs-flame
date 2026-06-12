@@ -36,11 +36,27 @@ class SpectrometerTelecommunicator:
 
         self.socket_obj.send(query.encode("ascii"))
 
-        raw_response = self.socket_obj.recv(self.recieve_buffer_size)
-        # TODO: look for acknowledgement characters here
-        response = raw_response.decode("ascii")
+        response_raw = self.socket_obj.recv(self.recieve_buffer_size)
 
-        return response
+        # Splits the response on the ascii acknowledgement character (06 in hex)
+        # (This assumes we get an acknowledgement)
+        # The query is returned back before the acknowledgement
+        # The actual response text is after the acknowledgement
+        # TODO: Check for invalid responses
+        # (no ack, query not echoed correctly, invalid end characters)
+        response_raw_split = response_raw.split(b"\06")
+        # query_echo_raw = response_raw_split[0]
+        query_response_raw = response_raw_split[1]
+
+        response_str = query_response_raw.decode("ascii")
+
+        # The standard trailing text for a response
+        # Contains no useful information
+        if response_str[-5:] != " \n\r> ":
+            print("response end not as expected")
+            return response_str
+
+        return response_str[:-5]
 
     def _big_query(self, query: str, end_string="65533") -> str:
         if self.socket_obj is None:
