@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
+import numpy as np
 from fastcs.attributes import AttributeIO, AttributeIORef, AttrR, AttrRW, AttrW
 from fastcs.controllers import Controller
-from fastcs.datatypes import Int
+from fastcs.datatypes import Int, Waveform
 from fastcs.util import ONCE
 
 from fastcsflame.spectrometer_telecommunicator import (
@@ -32,18 +33,37 @@ class IntegrationTimeIO(AttributeIO[int, IntegrationTimeIORef]):
         attr.io_ref.spec_tel_obj.set_integration_time(value)
 
 
+class ScanDataIORef(AttributeIORef):
+    spec_tel_obj: SpecTel
+
+    def __init__(self, spec_tel_obj: SpecTel):
+        super().__init__(update_period=ONCE)
+        self.spec_tel_obj = spec_tel_obj
+
+
+class ScanDataIO(AttributeIO[np.ndarray, ScanDataIORef]):
+    async def update(self, attr: AttrR[np.ndarray, ScanDataIORef]):
+        scan_data = attr.io_ref.spec_tel_obj.get_last_scan()
+
+        await attr.update(scan_data)
+
+
 class FlameController(Controller):
     spec_tel_obj: SpecTel
 
     integration_time: AttrRW
+    scan_data: AttrR
 
     def __init__(self, ip: str, port: int):
-        super().__init__(ios=[IntegrationTimeIO()])
+        super().__init__(ios=[IntegrationTimeIO(), ScanDataIO()])
 
         self.spec_tel_obj = SpecTel(ip, port)
 
         self.integration_time = AttrRW(
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
+        )
+        self.scan_data = AttrR(
+            Waveform(int, shape=(2048,)), io_ref=ScanDataIORef(self.spec_tel_obj)
         )
 
     async def connect(self):
