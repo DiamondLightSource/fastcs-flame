@@ -1,0 +1,17 @@
+# Changes here will be overwritten by Copier
+_commit: 5.1.0
+_src_path: https://github.com/DiamondLightSource/python-copier-template.git
+author_email: oliver.jones@diamond.ac.uk
+author_name: Oli Jones
+description: EPICS driver for the OceanOptics flame mini spectrometer
+distribution_name: fastcsflame
+docker: true
+docker_debug: true
+docs_type: README
+git_platform: github.com
+github_org: ''
+package_name: fastcsflame
+pypi: false
+repo_name: fastcsflame
+strict_typing: false
+type_checker: pyright
