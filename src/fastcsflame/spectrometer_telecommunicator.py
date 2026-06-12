@@ -17,7 +17,17 @@ class SpectrometerTelecommunicator:
         # TODO: add error handling here
         self.socket_obj = socket()
         self.socket_obj.connect((self.ip, self.port))
-        # TODO: listen for initial message from device and validate??
+
+        # connection message is the initial message sent by the device when you connect
+        # I'm not 100% sure what it means yet
+        # But the socket needs to be cleared for the next message either way
+        # Message can NOT be decoded into ascii (in binary??)
+        connection_message = self.socket_obj.recv(self.recieve_buffer_size)
+
+        if connection_message != b"\xff\xfa,k\x0f\xff\xf0":
+            # TODO: add proper error handling here
+            print("connection message not what was expected: ")
+            print(connection_message)
 
     def _small_query(self, query: str) -> str:
         if self.socket_obj is None:
