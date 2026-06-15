@@ -76,11 +76,11 @@ class SpectrometerTelecommunicator:
 
         # The standard trailing text for a response
         # Contains no useful information
-        if response_str[-5:] != " \n\r> ":
+        if response_str[-4:] != "\n\r> ":
             print("response end not as expected")
             return response_str
 
-        return response_str[:-5]
+        return response_str[:-4].strip()
 
     def get_version(self) -> int:
         version_str = self._small_query("v")
@@ -88,7 +88,7 @@ class SpectrometerTelecommunicator:
         return version_int
 
     def set_integration_time(self, integration_time: int):
-        self._small_query("I" + str(integration_time))
+        self._small_query("I" + str(integration_time) + "\n")
 
     def get_integration_time(self) -> int:
         integration_time_str = self._small_query("?I")
