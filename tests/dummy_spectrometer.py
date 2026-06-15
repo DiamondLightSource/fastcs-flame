@@ -24,5 +24,24 @@ class DummySpectrometer:
         while last_message != "":
             message = await loop.sock_recv(connection, 1024)
             last_message = message.decode("ascii")
-            print(last_message)
+            response = self.handle_request(last_message)
+            connection.send(response)
             await asyncio.sleep(1)
+
+    def handle_request(self, request: str) -> bytes:
+        match request:
+            case "v":
+                return self.send_version()
+        return b""
+
+    def send_version(self) -> bytes:
+        return self.wrap_response("v", "4110 ")
+
+    @staticmethod
+    def wrap_response(
+        request: str,
+        response: str,
+        delimeter: bytes = b"\x06",
+        footer: bytes = b"\n\r> ",
+    ) -> bytes:
+        return request.encode("ascii") + delimeter + response.encode("ascii") + footer
