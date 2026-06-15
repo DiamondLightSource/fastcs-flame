@@ -14,8 +14,12 @@ class DummySpectrometer:
         self.server_socket.setblocking(False)
 
         loop = asyncio.get_event_loop()
+        # Do we also need to setblocking for connection??
         connection, address = await loop.sock_accept(self.server_socket)
 
-        while True:
+        last_message = "Blank"
+        while last_message != "":
             message = await loop.sock_recv(connection, 1024)
-            print(message)
+            last_message = message.decode("ascii")
+            print(last_message)
+            await asyncio.sleep(1)
