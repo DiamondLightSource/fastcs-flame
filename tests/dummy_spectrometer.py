@@ -11,25 +11,26 @@ class DummySpectrometer:
 
     async def start(self):
         self.server_socket.listen(1)
+        # Allows us to use async code with sockets
         self.server_socket.setblocking(False)
 
         loop = asyncio.get_event_loop()
         # Do we also need to setblocking for connection??
         connection, address = await loop.sock_accept(self.server_socket)
-        # send initial message like spectrometer
+        # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
         connection.send(b"\xff\xfa,k\x0f\xff\xf0")
 
-        last_message = "Blank"
+        last_message: str | None = None
+        # Recieve and process messages until the connection is closed
         while last_message != "":
-            message = await loop.sock_recv(connection, 1024)
-            last_message = message.decode("ascii")
+            raw_last_message = await loop.sock_recv(connection, 1024)
+            last_message = raw_last_message.decode("ascii")
             response = self.handle_request(last_message)
             connection.send(response)
-            await asyncio.sleep(1)
 
     def handle_request(self, request: str) -> bytes:
-        match request:
+        match request[0]:
             case "v":
                 return self.send_version()
         return b""
