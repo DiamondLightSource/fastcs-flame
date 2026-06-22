@@ -54,12 +54,36 @@ class ScanDataIO(AttributeIO[np.ndarray, ScanDataIORef]):
         await attr.update(scan_data)
 
 
+class AcquisitionPeriodIORef(AttributeIORef):
+    def __init__(self):
+        super().__init__(update_period=ONCE)
+
+
+class AcquisitionPeriodIO(AttributeIO[int, AcquisitionPeriodIORef]):
+    initial_value: int
+
+    def __init__(self, initial_value: int):
+        self.initial_value = initial_value
+
+    async def update(self, attr: AttrR[int, AcquisitionPeriodIORef]):
+
+        await attr.update(self.initial_value)
+
+    async def send(self, attr: AttrW[int, AcquisitionPeriodIORef], value: int):
+        return
+
+
 class FlameController(Controller):
     spec_tel_obj: SpecTel
 
     integration_time: AttrRW[int, IntegrationTimeIORef] = AttrRW(
         Int(), io_ref=IntegrationTimeIORef()
     )
+
+    acquisition_period: AttrRW[int, AcquisitionPeriodIORef] = AttrRW(
+        Int(), io_ref=AcquisitionPeriodIORef()
+    )
+
     scan_data: AttrR[np.ndarray, ScanDataIORef] = AttrR(
         Waveform(int, shape=(2048,)), io_ref=ScanDataIORef()
     )
@@ -70,6 +94,7 @@ class FlameController(Controller):
         super().__init__(
             ios=[
                 IntegrationTimeIO(self.spec_tel_obj),
+                AcquisitionPeriodIO(10),
                 ScanDataIO(self.spec_tel_obj),
             ]
         )
