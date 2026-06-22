@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 from fastcs.attributes import AttributeIO, AttributeIORef, AttrR, AttrRW, AttrW
@@ -135,14 +136,25 @@ class FlameController(Controller):
 
     @command()
     async def acquire_data(self):
+        start_time = datetime.now()
+
         acquisition_period = self.acquisition_period.get()
         total_images = self.total_images.get()
         period = acquisition_period / total_images
 
         for _ in range(total_images):
+            print(f"start time: {start_time}")
             await self.single_scan()
             # TODO: Send / store scan data here
             print(self.scan_data.get())
-            # TODO: Factor scan time into waiting period
-            # Keep in sync with start
-            await asyncio.sleep(period)
+
+            post_scan_time = datetime.now()
+            print(f"post scan time: {post_scan_time}")
+            scan_time_delta = post_scan_time - start_time
+            scan_time_delta_us = (
+                scan_time_delta.total_seconds() * 1000000
+            ) + scan_time_delta.microseconds
+            wait_time = period - (scan_time_delta_us / 1000000)
+
+            await asyncio.sleep(wait_time)
+            start_time = datetime.now()
