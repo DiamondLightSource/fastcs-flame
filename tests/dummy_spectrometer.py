@@ -40,10 +40,14 @@ class DummySpectrometer:
                 return self.get_version()
             case "I":
                 # find argument here and pass into method
+                # ALSO make sure they have the \n at the end
+                # Replicate the bug out if they dont
                 return self.set_integration_time(0)
             case "Z":
                 return self.get_last_scan()
             case "S":
+                # There should be a wait in here somewhere
+                # make async??
                 return self.scan()
             case "?":
                 match request[1]:
@@ -51,20 +55,39 @@ class DummySpectrometer:
                         return self.get_integration_time()
         return b""
 
+    # This double mapping is BAD
+    # (handle request mapping and including message in repsonse)
+    # Figure out a way to get rid of it
     def get_version(self) -> bytes:
         return self.wrap_response("v", str(self.version) + " ")
 
     def get_integration_time(self) -> bytes:
-        return b""
+        return self.wrap_response("?I", str(self.integration_time) + " ")
 
     def set_integration_time(self, integration_time: int) -> bytes:
-        return b""
+        self.integration_time = integration_time
+        return self.wrap_response("I" + str(self.integration_time) + "\n\r", " ")
 
     def get_last_scan(self) -> bytes:
-        return b""
+        return self.wrap_response("Z", self._scan_string())
 
     def scan(self) -> bytes:
-        return b""
+        # TODO: conduct scan here
+        return self.wrap_response("S", self._scan_string(), delimeter=b"\02")
+
+    def _scan_string(self) -> str:
+        # Header of scan data
+        # TODO: Add comments for what these numbers mean (in manual)
+        # 5th value might be different for an actual scan vs getting last scan
+        scan_string = "65535 0 1 8 0 0 0 "
+
+        for value in self.last_scan_data:
+            scan_string += str(value)
+            scan_string += " "
+
+        scan_string += "65533 "
+
+        return scan_string
 
     @staticmethod
     def wrap_response(
