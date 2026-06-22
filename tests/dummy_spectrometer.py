@@ -28,11 +28,12 @@ class DummySpectrometer:
         # (indicates spectrometer is in ascii mode, not binary)
         connection.send(b"\xff\xfa,k\x0f\xff\xf0")
 
-        last_message: str | None = None
         # Recieve and process messages until the connection is closed
-        while last_message != "":
+        while True:
             raw_last_message = await loop.sock_recv(connection, 1024)
             last_message = raw_last_message.decode("ascii")
+            if last_message == "":
+                return
             response = self.handle_request(last_message)
             self._respond_in_chunks(connection, response)
 
@@ -52,10 +53,7 @@ class DummySpectrometer:
             case "v":
                 return self.get_version()
             case "I":
-                # find argument here and pass into method
-                # ALSO make sure they have the \n at the end
-                # Replicate the bug out if they dont
-                return self.set_integration_time(0)
+                return self.set_integration_time(request)
             case "Z":
                 return self.get_last_scan()
             case "S":
@@ -77,8 +75,12 @@ class DummySpectrometer:
     def get_integration_time(self) -> bytes:
         return self.wrap_response("?I", str(self.integration_time) + " ")
 
-    def set_integration_time(self, integration_time: int) -> bytes:
-        self.integration_time = integration_time
+    def set_integration_time(self, request: str) -> bytes:
+        if "\n" not in request:
+            # TODO: make sure this is correct
+            return b"\x15"
+        new_integration_time = int(request[1:].split("\n")[0].rstrip())
+        self.integration_time = new_integration_time
         return self.wrap_response("I" + str(self.integration_time) + "\n\r", " ")
 
     def get_last_scan(self) -> bytes:
