@@ -142,9 +142,17 @@ class DummySpectrometer:
         Replaces the existing _last_scan_data list with a new random one
         """
         # TODO: could make this a smoother distribution but this is not important
+        last_last_value = self._last_scan_data[-1]
         self._last_scan_data = []
         for _ in range(self._scan_data_length):
             self._last_scan_data.append(random.randint(900, 1200))
+
+        # Ensure that the last value is not the same as before
+        # This means we can test a new scan has actually happened by comparing
+        # the last value
+        # Such a low probability of happening anyway
+        if self._last_scan_data[-1] == last_last_value:
+            self._last_scan_data[-1] += 1
 
     @staticmethod
     def wrap_response(
