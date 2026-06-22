@@ -73,6 +73,25 @@ class AcquisitionPeriodIO(AttributeIO[int, AcquisitionPeriodIORef]):
         return
 
 
+class TotalImagesIORef(AttributeIORef):
+    def __init__(self):
+        super().__init__(update_period=ONCE)
+
+
+class TotalImagesIO(AttributeIO[int, TotalImagesIORef]):
+    initial_value: int
+
+    def __init__(self, initial_value: int):
+        self.initial_value = initial_value
+
+    async def update(self, attr: AttrR[int, TotalImagesIORef]):
+
+        await attr.update(self.initial_value)
+
+    async def send(self, attr: AttrW[int, TotalImagesIORef], value: int):
+        return
+
+
 class FlameController(Controller):
     spec_tel_obj: SpecTel
 
@@ -82,6 +101,10 @@ class FlameController(Controller):
 
     acquisition_period: AttrRW[int, AcquisitionPeriodIORef] = AttrRW(
         Int(), io_ref=AcquisitionPeriodIORef()
+    )
+
+    total_images: AttrRW[int, TotalImagesIORef] = AttrRW(
+        Int(), io_ref=TotalImagesIORef()
     )
 
     scan_data: AttrR[np.ndarray, ScanDataIORef] = AttrR(
@@ -95,6 +118,7 @@ class FlameController(Controller):
             ios=[
                 IntegrationTimeIO(self.spec_tel_obj),
                 AcquisitionPeriodIO(10),
+                TotalImagesIO(10),
                 ScanDataIO(self.spec_tel_obj),
             ]
         )
