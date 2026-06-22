@@ -1,4 +1,5 @@
 import asyncio
+import random
 from socket import socket
 
 
@@ -7,12 +8,13 @@ class DummySpectrometer:
 
     version: int = 4110
     integration_time: int = 10
-    # Length 2044
     last_scan_data: list[int]
+    scan_data_length = 2044
 
     def __init__(self, port: int):
         self.server_socket = socket()
         self.server_socket.bind(("", port))
+        self._randomise_scan_data()
 
     async def start(self):
         self.server_socket.listen(1)
@@ -47,7 +49,7 @@ class DummySpectrometer:
                 return self.get_last_scan()
             case "S":
                 # There should be a wait in here somewhere
-                # make async??
+                # TODO: make async??
                 return self.scan()
             case "?":
                 match request[1]:
@@ -57,7 +59,7 @@ class DummySpectrometer:
 
     # This double mapping is BAD
     # (handle request mapping and including message in repsonse)
-    # Figure out a way to get rid of it
+    # TODO: Figure out a way to get rid of it
     def get_version(self) -> bytes:
         return self.wrap_response("v", str(self.version) + " ")
 
@@ -72,7 +74,7 @@ class DummySpectrometer:
         return self.wrap_response("Z", self._scan_string())
 
     def scan(self) -> bytes:
-        # TODO: conduct scan here
+        self._randomise_scan_data()
         return self.wrap_response("S", self._scan_string(), delimeter=b"\02")
 
     def _scan_string(self) -> str:
@@ -88,6 +90,13 @@ class DummySpectrometer:
         scan_string += "65533 "
 
         return scan_string
+
+    def _randomise_scan_data(self):
+
+        # TODO: could make this a smoother distribution but this is not important
+        self.last_scan_data = []
+        for _ in range(self.scan_data_length):
+            self.last_scan_data.append(random.randint(900, 1200))
 
     @staticmethod
     def wrap_response(
