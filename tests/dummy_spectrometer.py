@@ -5,6 +5,11 @@ from socket import socket
 class DummySpectrometer:
     server_socket: socket
 
+    version: int = 4110
+    integration_time: int = 10
+    # Length 2044
+    last_scan_data: list[int]
+
     def __init__(self, port: int):
         self.server_socket = socket()
         self.server_socket.bind(("", port))
@@ -32,11 +37,34 @@ class DummySpectrometer:
     def handle_request(self, request: str) -> bytes:
         match request[0]:
             case "v":
-                return self.send_version()
+                return self.get_version()
+            case "I":
+                # find argument here and pass into method
+                return self.set_integration_time(0)
+            case "Z":
+                return self.get_last_scan()
+            case "S":
+                return self.scan()
+            case "?":
+                match request[1]:
+                    case "I":
+                        return self.get_integration_time()
         return b""
 
-    def send_version(self) -> bytes:
-        return self.wrap_response("v", "4110 ")
+    def get_version(self) -> bytes:
+        return self.wrap_response("v", str(self.version) + " ")
+
+    def get_integration_time(self) -> bytes:
+        return b""
+
+    def set_integration_time(self, integration_time: int) -> bytes:
+        return b""
+
+    def get_last_scan(self) -> bytes:
+        return b""
+
+    def scan(self) -> bytes:
+        return b""
 
     @staticmethod
     def wrap_response(
