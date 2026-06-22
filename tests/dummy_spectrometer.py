@@ -34,7 +34,18 @@ class DummySpectrometer:
             raw_last_message = await loop.sock_recv(connection, 1024)
             last_message = raw_last_message.decode("ascii")
             response = self.handle_request(last_message)
-            connection.send(response)
+            self._respond_in_chunks(connection, response)
+
+    def _respond_in_chunks(self, connection: socket, response: bytes):
+
+        # takes first 1024 chunk on response one at a time and sends
+        while response != b"":
+            if len(response) < 1024:
+                connection.send(response)
+                response = b""
+            next_chunk = response[0:1024]
+            response = response[1024:]
+            connection.send(next_chunk)
 
     def handle_request(self, request: str) -> bytes:
         match request[0]:
