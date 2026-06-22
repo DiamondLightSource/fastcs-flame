@@ -19,6 +19,7 @@ class DummySpectrometer:
         """
         self.server_socket = socket()
         self.server_socket.bind(("", port))
+        self._last_scan_data = []
         self._randomise_scan_data()
 
     async def start(self):
@@ -142,7 +143,9 @@ class DummySpectrometer:
         Replaces the existing _last_scan_data list with a new random one
         """
         # TODO: could make this a smoother distribution but this is not important
-        last_last_value = self._last_scan_data[-1]
+        last_last_value = 0
+        if self._last_scan_data != []:
+            last_last_value = self._last_scan_data[-1]
         self._last_scan_data = []
         for _ in range(self._scan_data_length):
             self._last_scan_data.append(random.randint(900, 1200))
