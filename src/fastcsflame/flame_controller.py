@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 
 import numpy as np
@@ -117,8 +118,8 @@ class FlameController(Controller):
         super().__init__(
             ios=[
                 IntegrationTimeIO(self.spec_tel_obj),
-                AcquisitionPeriodIO(10),
-                TotalImagesIO(10),
+                AcquisitionPeriodIO(15),
+                TotalImagesIO(3),
                 ScanDataIO(self.spec_tel_obj),
             ]
         )
@@ -128,6 +129,20 @@ class FlameController(Controller):
         self.spec_tel_obj.connect()
 
     @command()
-    async def scan(self):
+    async def single_scan(self):
         new_scan_data = self.spec_tel_obj.scan()
         await self.scan_data.update(new_scan_data)
+
+    @command()
+    async def acquire_data(self):
+        acquisition_period = self.acquisition_period.get()
+        total_images = self.total_images.get()
+        period = acquisition_period / total_images
+
+        for _ in range(total_images):
+            await self.single_scan()
+            # TODO: Send / store scan data here
+            print(self.scan_data.get())
+            # TODO: Factor scan time into waiting period
+            # Keep in sync with start
+            await asyncio.sleep(period)
