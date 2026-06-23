@@ -8,6 +8,7 @@ from fastcs.controllers import Controller
 from fastcs.datatypes import Int, Waveform
 from fastcs.methods.command import command
 from fastcs.util import ONCE
+from numpy.typing import NDArray
 
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
@@ -96,6 +97,7 @@ class TotalImagesIO(AttributeIO[int, TotalImagesIORef]):
 
 class FlameController(Controller):
     spec_tel_obj: SpecTel
+    output_data_file_path: str
 
     integration_time: AttrRW[int, IntegrationTimeIORef] = AttrRW(
         Int(), io_ref=IntegrationTimeIORef()
@@ -113,8 +115,9 @@ class FlameController(Controller):
         Waveform(int, shape=(2048,)), io_ref=ScanDataIORef()
     )
 
-    def __init__(self, ip: str, port: int):
+    def __init__(self, ip: str, port: int, output_data_file_path: str = ""):
         self.spec_tel_obj = SpecTel(ip, port)
+        self.output_data_file_path = output_data_file_path
 
         super().__init__(
             ios=[
@@ -141,10 +144,13 @@ class FlameController(Controller):
         acquisition_period = self.acquisition_period.get()
         total_images = self.total_images.get()
 
-        schedule = [
+        schedule: list[datetime] = [
             start_time + timedelta(seconds=n * acquisition_period / (total_images - 1))
             for n in range(total_images)
         ]
+
+        actual_scan_times: list[datetime] = []
+        scan_data: list[NDArray] = []
 
         for scheduled_time in schedule:
             loop_start_time = datetime.now()
@@ -157,5 +163,21 @@ class FlameController(Controller):
             await self.single_scan()
             # TODO: Send / store scan data here
 
-            print(scan_start_time)
-            print(self.scan_data.get())
+            # Better to make this one list of tuples??
+            actual_scan_times.append(scan_start_time)
+            scan_data.append(self.scan_data.get())
+
+        self._write_scan_data_to_file(scan_data, actual_scan_times)
+
+    def _write_scan_data_to_file(
+        self, scan_data: list[NDArray], scan_times: list[datetime]
+    ):
+        if self.output_data_file_path == "":
+            return
+
+        with open(self.output_data_file_path, "x") as file:
+            for i in range(len(scan_data)):
+                file.write("#" + str(scan_times[i]) + "#\n")
+                for value in scan_data[i]:
+                    file.write(str(value) + ",")
+                file.write("\n")
