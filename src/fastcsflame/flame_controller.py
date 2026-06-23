@@ -119,7 +119,7 @@ class FlameController(Controller):
         super().__init__(
             ios=[
                 IntegrationTimeIO(self.spec_tel_obj),
-                AcquisitionPeriodIO(15),
+                AcquisitionPeriodIO(45),
                 TotalImagesIO(3),
                 ScanDataIO(self.spec_tel_obj),
             ]
