@@ -151,7 +151,7 @@ class FlameController(Controller):
 
             # wait until scheduled time for scan
             if loop_start_time < scheduled_time:
-                await asyncio.sleep((loop_start_time - scheduled_time).total_seconds())
+                await asyncio.sleep((scheduled_time - loop_start_time).total_seconds())
 
             scan_start_time = datetime.now()
             await self.single_scan()
