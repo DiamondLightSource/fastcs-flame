@@ -16,6 +16,9 @@ from fastcsflame.spectrometer_telecommunicator import (
 )
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
+# Should be 2048 in theory but 2044 in practice
+SCAN_DATA_LENGTH = 2044
+
 
 @dataclass
 class IntegrationTimeIORef(AttributeIORef):
@@ -146,7 +149,7 @@ class FlameController(Controller):
 
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef] = AttrR(
-        Waveform(int, shape=(2048,)), io_ref=ScanDataIORef()
+        Waveform(int, shape=(SCAN_DATA_LENGTH,)), io_ref=ScanDataIORef()
     )
 
     def __init__(
