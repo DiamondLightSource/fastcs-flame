@@ -158,9 +158,15 @@ class SpectrometerTelecommunicator:
         """
         Sends a query to get the version of the spectrometer
         returns version encoded as an integer (e.g. 4.1.0 = 410)
+        raises UnexpectedResponseError
         """
         version_str = self._small_query("v")
-        version_int = int(version_str)
+        try:
+            version_int = int(version_str)
+        except ValueError as e:
+            raise UnexpectedResponseError(
+                f"Expected version number, recieved '{version_str}'"
+            ) from e
         return version_int
 
     def set_integration_time(self, integration_time: int):
@@ -174,9 +180,15 @@ class SpectrometerTelecommunicator:
         """
         Sends a query to get the integration time value of the spectrometer
         returns integration time
+        raises UnexpectedResponseError
         """
         integration_time_str = self._small_query("?I")
-        integration_time_int = int(integration_time_str)
+        try:
+            integration_time_int = int(integration_time_str)
+        except ValueError as e:
+            raise UnexpectedResponseError(
+                f"Expected version number, recieved '{integration_time_str}'"
+            ) from e
         return integration_time_int
 
     def scan(self) -> list[int]:
@@ -202,11 +214,15 @@ class SpectrometerTelecommunicator:
         scan_result_str: The body of a scan request response
             (after acknowledgement character, before newline & cariage return)
         returns scan data
+        raises UnexpectedResponseError
         """
         # start with scan_results
         # split on " " to separate the numbers and put them in a list
         # get rid of the first 6 numbers and last 3
         #   as this is just meta data and handshakes
         # convert each one to an integer in a string comprehension
-        data = [int(s) for s in scan_result_str.split(" ")[7:-4]]
-        return data
+        try:
+            data = [int(s) for s in scan_result_str.split(" ")[7:-4]]
+            return data
+        except ValueError as e:
+            raise UnexpectedResponseError from e
