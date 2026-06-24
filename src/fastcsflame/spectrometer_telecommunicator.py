@@ -2,18 +2,31 @@ from socket import socket
 
 
 class SpectrometerTelecommunicator:
+    """
+    Communicates with Flame spectrometers using Telnet
+    """
+
     ip: str
     port: int
     recieve_buffer_size: int = 1024
     socket_obj: socket | None = None
 
     def __init__(self, ip: str, port: int):
-        # TODO: add ip checking
-        # Also add conversion from domain to IP??
+        """
+        Creates the communicator object but does NOT connect to the spectrometers socket
+        OR validate socket correctness
+        To connect use connect() method
+        ip: IP address of the device the spectrometer is connected to
+            example: "192.168.0.1"
+        port: Port of the device the spectrometer is communicating on
+        """
         self.ip = ip
         self.port = port
 
     def connect(self):
+        """
+        Connects to the spectrometers socket
+        """
         # TODO: add error handling here
         self.socket_obj = socket()
         self.socket_obj.connect((self.ip, self.port))
@@ -30,6 +43,11 @@ class SpectrometerTelecommunicator:
             print(connection_message)
 
     def _small_query(self, query: str) -> str:
+        """
+        Send a query that expects a one packet response
+        query: Query to send to spectrometer (before byte encoding)
+        returns response body decoded
+        """
         if self.socket_obj is None:
             # TODO: add handling when socket is None
             return ""
@@ -41,6 +59,12 @@ class SpectrometerTelecommunicator:
         return self._extract_response(response_raw)
 
     def _big_query(self, query: str, end_signal: bytes = b"65533") -> str:
+        """
+        Send a query that expects more than one packet as a response
+        query: Query to send to spectrometer (before byte encoding)
+        end_signal: Any collection of bytes included in the final packet
+        returns response body decoded
+        """
         if self.socket_obj is None:
             # TODO: add handling when socket is None
             return ""
@@ -61,6 +85,9 @@ class SpectrometerTelecommunicator:
 
     @staticmethod
     def _extract_response(response_raw: bytes) -> str:
+        """
+        Extracts the main response body from the entire response bytes and decodes it
+        """
 
         # Splits the response on the ascii acknowledgement character (06 in hex)
         # (This assumes we get an acknowledgement)
@@ -89,28 +116,54 @@ class SpectrometerTelecommunicator:
         return response_str[:-4].strip()
 
     def get_version(self) -> int:
+        """
+        Sends a query to get the version of the spectrometer
+        returns version encoded as an integer (e.g. 4.1.0 = 410)
+        """
         version_str = self._small_query("v")
         version_int = int(version_str)
         return version_int
 
     def set_integration_time(self, integration_time: int):
+        """
+        Sends a query to set the integration time value of the spectrometer
+        integration_time: Value to set integration time to
+        """
         self._small_query("I" + str(integration_time) + "\n")
 
     def get_integration_time(self) -> int:
+        """
+        Sends a query to get the integration time value of the spectrometer
+        returns integration time
+        """
         integration_time_str = self._small_query("?I")
         integration_time_int = int(integration_time_str)
         return integration_time_int
 
     def scan(self) -> list[int]:
+        """
+        Triggers a new scan on the spectrometer
+        returns scan data
+        """
         scan_result_str = self._big_query("S")
         return self._scan_str_to_list(scan_result_str)
 
     def get_last_scan(self) -> list[int]:
+        """
+        Sends a query to get data from the last scan the spectrometer took
+        returns scan data
+        """
         scan_result_str = self._big_query("Z")
         return self._scan_str_to_list(scan_result_str)
 
     @staticmethod
     def _scan_str_to_list(scan_result_str: str) -> list[int]:
+        """
+        Converts the body of a scan request response into a list of integer values
+        scan_result_str: The body of a scan request response
+            (after acknowledgement character, before newline & cariage return)
+        returns scan data
+        """
         # start with scan_results
         # split on " " to separate the numbers and put them in a list
         # get rid of the first 6 numbers and last 3
