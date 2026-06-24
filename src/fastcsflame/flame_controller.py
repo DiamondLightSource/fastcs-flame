@@ -6,6 +6,7 @@ import numpy as np
 from fastcs.attributes import AttributeIO, AttributeIORef, AttrR, AttrRW, AttrW
 from fastcs.controllers import Controller
 from fastcs.datatypes import Int, Waveform
+from fastcs.logging import logger
 from fastcs.methods.command import command
 from fastcs.util import ONCE
 from numpy.typing import NDArray
@@ -13,6 +14,7 @@ from numpy.typing import NDArray
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
+from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
 
 @dataclass
@@ -30,9 +32,17 @@ class IntegrationTimeIO(AttributeIO[int, IntegrationTimeIORef]):
         self.spec_tel_obj = spec_tel_obj
 
     async def update(self, attr: AttrR[int, IntegrationTimeIORef]):
-        integration_time_value = self.spec_tel_obj.get_integration_time()
 
-        await attr.update(integration_time_value)
+        try:
+            integration_time_value = self.spec_tel_obj.get_integration_time()
+
+            await attr.update(integration_time_value)
+        except UnexpectedResponseError as e:
+            logger.warning(
+                "Spectrometer gave unexpected response from integration time query: "
+                + f"\n{e.args[0]}"
+                + "\nIntegrationTime PV not updated"
+            )
 
     async def send(self, attr: AttrW[int, IntegrationTimeIORef], value: int):
         self.spec_tel_obj.set_integration_time(value)
@@ -56,9 +66,16 @@ class ScanDataIO(AttributeIO[np.ndarray, ScanDataIORef]):
         self.spec_tel_obj = spec_tel_obj
 
     async def update(self, attr: AttrR[np.ndarray, ScanDataIORef]):
-        scan_data = self.spec_tel_obj.get_last_scan()
+        try:
+            scan_data = self.spec_tel_obj.get_last_scan()
 
-        await attr.update(scan_data)
+            await attr.update(scan_data)
+        except UnexpectedResponseError as e:
+            logger.warning(
+                "Spectrometer gave unexpected response from scan data query: "
+                + f"\n{e.args[0]}"
+                + "\nScanData PV not updated"
+            )
 
 
 class AcquisitionPeriodIORef(AttributeIORef):
@@ -144,8 +161,15 @@ class FlameController(Controller):
 
     @command()
     async def single_scan(self):
-        new_scan_data = self.spec_tel_obj.scan()
-        await self.scan_data.update(new_scan_data)
+        try:
+            new_scan_data = self.spec_tel_obj.scan()
+            await self.scan_data.update(new_scan_data)
+        except UnexpectedResponseError as e:
+            logger.warning(
+                "Spectrometer gave unexpected response from scan trigger attempt: "
+                + f"\n{e.args[0]}"
+                + "\nScanData PV not updated"
+            )
 
     @command()
     async def acquire_data(self):
