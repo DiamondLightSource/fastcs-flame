@@ -5,6 +5,10 @@ class UnexpectedResponseError(Exception):
     pass
 
 
+class NotConnectedError(BaseException):
+    pass
+
+
 class SpectrometerTelecommunicator:
     """
     Communicates with Flame spectrometers using Telnet
@@ -63,10 +67,17 @@ class SpectrometerTelecommunicator:
         Send a query that expects a one packet response
         query: Query to send to spectrometer (before byte encoding)
         returns response body decoded
+        raises
+            NotConnectedError
+                (when connect method hasnt been called before this method)
+            TimeoutError
+                (when no response was recieved from the device)
         """
         if self.socket_obj is None:
-            # TODO: add handling when socket is None
-            return ""
+            raise NotConnectedError(
+                "Object is not connected to spectrometer, no socket exists. "
+                + "Call connect() method first"
+            )
 
         self.socket_obj.send(query.encode("ascii"))
 
@@ -80,14 +91,20 @@ class SpectrometerTelecommunicator:
         query: Query to send to spectrometer (before byte encoding)
         end_signal: Any collection of bytes included in the final packet
         returns response body decoded
+                raises
+            NotConnectedError
+                (when connect method hasnt been called before this method)
+            TimeoutError
+                (when no response was recieved from the device)
         """
         if self.socket_obj is None:
-            # TODO: add handling when socket is None
-            return ""
+            raise NotConnectedError(
+                "Object is not connected to spectrometer, no socket exists. "
+                + "Call connect() method first"
+            )
 
         self.socket_obj.send(query.encode("ascii"))
 
-        # Switch to bytearray??
         response_raw: bytes = b""
         last_response_raw_section: bytes = b""
 
@@ -95,7 +112,6 @@ class SpectrometerTelecommunicator:
         while last_response_raw_section.rfind(end_signal) == -1:
             last_response_raw_section = self.socket_obj.recv(self.recieve_buffer_size)
             response_raw += last_response_raw_section
-        # TODO: Add a failsafe incase transmission is stopped half way through
 
         return self._extract_response(response_raw)
 
