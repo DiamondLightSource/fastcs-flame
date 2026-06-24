@@ -1,5 +1,7 @@
 from socket import socket
 
+from fastcs.logging import logger
+
 
 class UnexpectedResponseError(Exception):
     pass
@@ -119,20 +121,22 @@ class SpectrometerTelecommunicator:
     def _extract_response(response_raw: bytes) -> str:
         """
         Extracts the main response body from the entire response bytes and decodes it
+        If response body cannot be extracted entire decoded response is returned
         """
 
         # Splits the response on the ascii acknowledgement character (06 in hex)
         # (This assumes we get an acknowledgement)
         # The query is returned back before the acknowledgement
         # The actual response text is after the acknowledgement
-        # TODO: Check for invalid responses
-        # (no ack, query not echoed correctly, invalid end characters)
-        if b"\x06" in response_raw:
+        if b"\x15" in response_raw:
+            logger.warning(f"Negative acknowledgement in response: {response_raw}")
+            return response_raw.decode()
+        elif b"\x06" in response_raw:
             response_raw_split = response_raw.split(b"\x06")
         elif b"\x02" in response_raw:
             response_raw_split = response_raw.split(b"\x02")
         else:
-            print("No valid delimeter in response")
+            logger.warning(f"No valid delimeter in response: {response_raw}")
             return response_raw.decode("ascii")
         # query_echo_raw = response_raw_split[0]
         query_response_raw = response_raw_split[1]
@@ -142,7 +146,10 @@ class SpectrometerTelecommunicator:
         # The standard trailing text for a response
         # Contains no useful information
         if response_str[-4:] != "\n\r> ":
-            print("response end not as expected")
+            logger.warning(
+                f"Response end not as expected: {response_str} \n"
+                + "Expected '\\n\\r> ' at tail end"
+            )
             return response_str
 
         return response_str[:-4].strip()
