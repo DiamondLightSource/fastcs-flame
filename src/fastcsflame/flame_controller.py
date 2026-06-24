@@ -100,22 +100,22 @@ class AcquisitionPeriodIO(AttributeIO[int, AcquisitionPeriodIORef]):
             await attr.update(value)
 
 
-class TotalImagesIORef(AttributeIORef):
+class TotalScansIORef(AttributeIORef):
     def __init__(self):
         super().__init__(update_period=ONCE)
 
 
-class TotalImagesIO(AttributeIO[int, TotalImagesIORef]):
+class TotalScansIO(AttributeIO[int, TotalScansIORef]):
     initial_value: int
 
     def __init__(self, initial_value: int):
         self.initial_value = initial_value
 
-    async def update(self, attr: AttrR[int, TotalImagesIORef]):
+    async def update(self, attr: AttrR[int, TotalScansIORef]):
 
         await attr.update(self.initial_value)
 
-    async def send(self, attr: AttrW[int, TotalImagesIORef], value: int):
+    async def send(self, attr: AttrW[int, TotalScansIORef], value: int):
 
         # update RBV to match written value
         if isinstance(attr, AttrRW):
@@ -134,9 +134,7 @@ class FlameController(Controller):
         Int(), io_ref=AcquisitionPeriodIORef()
     )
 
-    total_images: AttrRW[int, TotalImagesIORef] = AttrRW(
-        Int(), io_ref=TotalImagesIORef()
-    )
+    total_scans: AttrRW[int, TotalScansIORef] = AttrRW(Int(), io_ref=TotalScansIORef())
 
     scan_data: AttrR[np.ndarray, ScanDataIORef] = AttrR(
         Waveform(int, shape=(2048,)), io_ref=ScanDataIORef()
@@ -150,7 +148,7 @@ class FlameController(Controller):
             ios=[
                 IntegrationTimeIO(self.spec_tel_obj),
                 AcquisitionPeriodIO(45),
-                TotalImagesIO(3),
+                TotalScansIO(3),
                 ScanDataIO(self.spec_tel_obj),
             ]
         )
@@ -176,11 +174,11 @@ class FlameController(Controller):
         start_time = datetime.now()
 
         acquisition_period = self.acquisition_period.get()
-        total_images = self.total_images.get()
+        total_scans = self.total_scans.get()
 
         schedule: list[datetime] = [
-            start_time + timedelta(seconds=n * acquisition_period / (total_images - 1))
-            for n in range(total_images)
+            start_time + timedelta(seconds=n * acquisition_period / (total_scans - 1))
+            for n in range(total_scans)
         ]
 
         actual_scan_times: list[datetime] = []
@@ -192,10 +190,18 @@ class FlameController(Controller):
             # wait until scheduled time for scan
             if loop_start_time < scheduled_time:
                 await asyncio.sleep((scheduled_time - loop_start_time).total_seconds())
+            else:
+                logger.warning(
+                    "Scan is behind schedule\n"
+                    + f"Time: {loop_start_time}\n"
+                    + f"Expected scan start time: {scheduled_time}\n"
+                    + "This is likely because too many scans are requested in the "
+                    + "acquisition period. It takes roughly 11 seconds to send data "
+                    + "from a scan, consider decreasing TotalScans value"
+                )
 
             scan_start_time = datetime.now()
             await self.single_scan()
-            # TODO: Send / store scan data here
 
             # Better to make this one list of tuples??
             actual_scan_times.append(scan_start_time)
