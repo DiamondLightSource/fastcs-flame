@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from fastcs.launch import FastCS
+from fastcs.logging import configure_logging
 from fastcs.transports.epics import EpicsGUIOptions
 from fastcs.transports.epics.ca import EpicsCATransport
 
@@ -25,6 +26,8 @@ def main(args: Sequence[str] | None = None) -> None:
         version=__version__,
     )
     parser.parse_args(args)
+
+    configure_logging()
 
     gui_options = EpicsGUIOptions(
         output_dir=Path("./opi"), title="Demo Temperature Controller"
