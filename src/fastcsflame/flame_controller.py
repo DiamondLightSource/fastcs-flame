@@ -37,6 +37,10 @@ class IntegrationTimeIO(AttributeIO[int, IntegrationTimeIORef]):
     async def send(self, attr: AttrW[int, IntegrationTimeIORef], value: int):
         self.spec_tel_obj.set_integration_time(value)
 
+        # Make sure readback value is inline with what was set
+        if isinstance(attr, AttrRW):
+            await self.update(attr)
+
 
 class ScanDataIORef(AttributeIORef):
     def __init__(self):
@@ -73,7 +77,10 @@ class AcquisitionPeriodIO(AttributeIO[int, AcquisitionPeriodIORef]):
         await attr.update(self.initial_value)
 
     async def send(self, attr: AttrW[int, AcquisitionPeriodIORef], value: int):
-        return
+
+        # update RBV to match written value
+        if isinstance(attr, AttrRW):
+            await attr.update(value)
 
 
 class TotalImagesIORef(AttributeIORef):
@@ -92,7 +99,10 @@ class TotalImagesIO(AttributeIO[int, TotalImagesIORef]):
         await attr.update(self.initial_value)
 
     async def send(self, attr: AttrW[int, TotalImagesIORef], value: int):
-        return
+
+        # update RBV to match written value
+        if isinstance(attr, AttrRW):
+            await attr.update(value)
 
 
 class FlameController(Controller):
