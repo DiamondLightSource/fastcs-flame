@@ -123,6 +123,10 @@ class TotalScansIO(AttributeIO[int, TotalScansIORef]):
 
 
 class FlameController(Controller):
+    """
+    FastCS controller for an OceanOptics Flame spectrometer
+    """
+
     spec_tel_obj: SpecTel
     output_data_file_path: str
 
@@ -130,25 +134,49 @@ class FlameController(Controller):
         Int(), io_ref=IntegrationTimeIORef()
     )
 
+    # Time to acquire data over
+    # NOT a value from the spectrometer
     acquisition_period: AttrRW[int, AcquisitionPeriodIORef] = AttrRW(
         Int(), io_ref=AcquisitionPeriodIORef()
     )
 
+    # Number of scans to perform in acquisition period
+    # NOT a value from the spectrometer
     total_scans: AttrRW[int, TotalScansIORef] = AttrRW(Int(), io_ref=TotalScansIORef())
 
+    # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef] = AttrR(
         Waveform(int, shape=(2048,)), io_ref=ScanDataIORef()
     )
 
-    def __init__(self, ip: str, port: int, output_data_file_path: str = ""):
+    def __init__(
+        self,
+        ip: str,
+        port: int,
+        output_data_file_path: str = "",
+        default_acquisition_period: int = 45,
+        default_total_scans: int = 3,
+    ):
+        """
+        Creates controller object
+        Creates SpectrometerTelecommunicator object but does NOT connect to it
+        ip: IP address of the device the spectrometer is connected to
+            example: "192.168.0.1"
+        port: Port of the device the spectrometer is communicating on
+        output_data_file_path: File to store acquired data in
+            If a file does not exist one will be created
+            If a file does exist it will be overwritten
+        default_acquisition_period: Default value for acquisition period (seconds)
+        default_total_scans: Default value for scans to perform in acquisition period
+        """
         self.spec_tel_obj = SpecTel(ip, port)
         self.output_data_file_path = output_data_file_path
 
         super().__init__(
             ios=[
                 IntegrationTimeIO(self.spec_tel_obj),
-                AcquisitionPeriodIO(45),
-                TotalScansIO(3),
+                AcquisitionPeriodIO(default_acquisition_period),
+                TotalScansIO(default_total_scans),
                 ScanDataIO(self.spec_tel_obj),
             ]
         )
@@ -159,6 +187,10 @@ class FlameController(Controller):
 
     @command()
     async def single_scan(self):
+        """
+        Conducts a single scan using the spectrometer
+        Stores scan data in ScanData PV
+        """
         try:
             new_scan_data = self.spec_tel_obj.scan()
             await self.scan_data.update(new_scan_data)
@@ -171,6 +203,16 @@ class FlameController(Controller):
 
     @command()
     async def acquire_data(self):
+        """
+        Starts the data acquisition process
+        Conducts [TotalScans] scans over a period of [AcquisitionPeriod] seconds
+        Scans are evenly spaced with one conducted when the command is called
+        and one conducted [AcquisitionPeriod] seconds after the command is called
+        It takes roughly 11 seconds to send scan data so if TotalScans is set too high
+        for the AcquisitionPeriod scans will be conducted behind schedule
+        In this case a warning is logged
+        Data is output to output_data_filepath
+        """
         start_time = datetime.now()
 
         acquisition_period = self.acquisition_period.get()
@@ -212,6 +254,15 @@ class FlameController(Controller):
     def _write_scan_data_to_file(
         self, scan_data: list[NDArray], scan_times: list[datetime]
     ):
+        """
+        Writes data from a data acquisition process to the output file
+        scan_data: A list of 1D numpy arrays of integers
+            Each array contains data from one scan
+        scan_times: A list of datetimes that scans were conducted
+            This list should be the same length as the scan_data list
+        For each scan, writes the datetime with hashes either side
+        then writes raw scan data on a new line. Values are separated by commas
+        """
         if self.output_data_file_path == "":
             return
 
