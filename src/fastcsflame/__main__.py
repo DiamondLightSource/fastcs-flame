@@ -2,8 +2,10 @@
 
 from argparse import ArgumentParser
 from collections.abc import Sequence
+from pathlib import Path
 
 from fastcs.launch import FastCS
+from fastcs.transports.epics import EpicsGUIOptions
 from fastcs.transports.epics.ca import EpicsCATransport
 
 from fastcsflame.flame_controller import FlameController
@@ -24,9 +26,14 @@ def main(args: Sequence[str] | None = None) -> None:
     )
     parser.parse_args(args)
 
-    epics_ca = EpicsCATransport()
+    gui_options = EpicsGUIOptions(
+        output_dir=Path("./opi"), title="Demo Temperature Controller"
+    )
+    epics_ca = EpicsCATransport(gui=gui_options)
 
-    flame_controller = FlameController("172.23.91.5", 7016)
+    flame_controller = FlameController(
+        "172.23.91.5", 7016, output_data_file_path="./data.txt"
+    )
     flame_controller.set_path(["FLAME"])
 
     fastcs = FastCS(flame_controller, [epics_ca])
