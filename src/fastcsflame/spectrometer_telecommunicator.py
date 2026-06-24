@@ -1,6 +1,10 @@
 from socket import socket
 
 
+class UnexpectedResponseError(Exception):
+    pass
+
+
 class SpectrometerTelecommunicator:
     """
     Communicates with Flame spectrometers using Telnet
@@ -26,8 +30,17 @@ class SpectrometerTelecommunicator:
     def connect(self):
         """
         Connects to the spectrometers socket
+        raises
+            TimeoutError
+                (when the socket address is wrong
+                OR the device does not send a startup message)
+            UnexpectedResponseError
+                (when the startup message from the spectrometer is not as expected,
+                this could just mean its in binary mode)
+        Unlikely errors:
+            ConnectionRefusedError
+            OSError
         """
-        # TODO: add error handling here
         self.socket_obj = socket()
         self.socket_obj.connect((self.ip, self.port))
 
@@ -37,10 +50,13 @@ class SpectrometerTelecommunicator:
         # Message can NOT be decoded into ascii (in binary??)
         connection_message = self.socket_obj.recv(self.recieve_buffer_size)
 
+        # TODO: Add a case for binary start up message too
+        # Maybe send signal to convert it ascii??
         if connection_message != b"\xff\xfa,k\x0f\xff\xf0":
-            # TODO: add proper error handling here
-            print("connection message not what was expected: ")
-            print(connection_message)
+            raise UnexpectedResponseError(
+                "Expected connection message: b'\\xff\\xfa,k\\x0f\\xff\\xf0' "
+                + f"recieved: {connection_message}"
+            )
 
     def _small_query(self, query: str) -> str:
         """
