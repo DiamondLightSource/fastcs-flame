@@ -19,6 +19,7 @@ from fastcsflame.flame_controller_attributes import (
     SpectrometerIntIO,
     SpectrometerScanIO,
 )
+from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
@@ -34,7 +35,6 @@ class FlameController(Controller):
     """
 
     spec_tel_obj: SpecTel
-    output_data_file_path: str
 
     integration_time: AttrRW[int, IntegrationTimeIORef]
 
@@ -52,11 +52,12 @@ class FlameController(Controller):
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef]
 
+    file_builder: Hdf5FileBuilder
+
     def __init__(
         self,
         ip: str,
         port: int,
-        output_data_file_path: str = "",
         default_acquisition_period: int = 45,
         default_total_scans: int = 3,
         default_nexus_save_file_path: str = "./",
@@ -75,8 +76,6 @@ class FlameController(Controller):
         default_total_scans: Default value for scans to perform in acquisition period
         """
         self.spec_tel_obj = SpecTel(ip, port)
-        self.output_data_file_path = output_data_file_path
-
         super().__init__(
             ios=[
                 SpectrometerIntIO(),
@@ -85,6 +84,8 @@ class FlameController(Controller):
                 SpectrometerScanIO(),
             ]
         )
+
+        self.file_builder = Hdf5FileBuilder()
 
         self.integration_time = AttrRW(
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
@@ -150,8 +151,8 @@ class FlameController(Controller):
             for n in range(total_scans)
         ]
 
-        actual_scan_times: list[datetime] = []
-        scan_data: list[NDArray] = []
+        actual_scan_times: list[np.datetime64] = []
+        acquisition_data: list[NDArray] = []
 
         for scheduled_time in schedule:
             loop_start_time = datetime.now()
@@ -173,29 +174,15 @@ class FlameController(Controller):
             await self.single_scan()
 
             # Better to make this one list of tuples??
-            actual_scan_times.append(scan_start_time)
-            scan_data.append(self.scan_data.get())
+            actual_scan_times.append(np.datetime64(scan_start_time))
+            acquisition_data.append(self.scan_data.get())
 
-        self._write_scan_data_to_file(scan_data, actual_scan_times)
-
-    def _write_scan_data_to_file(
-        self, scan_data: list[NDArray], scan_times: list[datetime]
-    ):
-        """
-        Writes data from a data acquisition process to the output file
-        scan_data: A list of 1D numpy arrays of integers
-            Each array contains data from one scan
-        scan_times: A list of datetimes that scans were conducted
-            This list should be the same length as the scan_data list
-        For each scan, writes the datetime with hashes either side
-        then writes raw scan data on a new line. Values are separated by commas
-        """
-        if self.output_data_file_path == "":
-            return
-
-        with open(self.output_data_file_path, "x") as file:
-            for i in range(len(scan_data)):
-                file.write("#" + str(scan_times[i]) + "#\n")
-                for value in scan_data[i]:
-                    file.write(str(value) + ",")
-                file.write("\n")
+        self.file_builder.create_h5_file(
+            self.nexus_save_file_path.get(),
+            self.nexus_save_file_name.get(),
+            "",
+            "",
+            "",
+            np.array(acquisition_data),
+            np.array(actual_scan_times),
+        )
