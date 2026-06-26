@@ -22,19 +22,22 @@ SCAN_DATA_LENGTH = 2044
 
 @dataclass
 class IntegrationTimeIORef(AttributeIORef):
-    def __init__(self):
-        super().__init__(update_period=ONCE)
-
-
-class IntegrationTimeIO(AttributeIO[int, IntegrationTimeIORef]):
     spec_tel_obj: SpecTel
 
     def __init__(self, spec_tel_obj: SpecTel):
-        super().__init__()
+        super().__init__(update_period=ONCE)
 
         self.spec_tel_obj = spec_tel_obj
 
+
+class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
+    spec_tel_obj: SpecTel
+
+    def __init__(self):
+        super().__init__()
+
     async def update(self, attr: AttrR[int, IntegrationTimeIORef]):
+        self.spec_tel_obj = attr.io_ref.spec_tel_obj
 
         try:
             integration_time_value = self.spec_tel_obj.get_integration_time()
@@ -56,19 +59,23 @@ class IntegrationTimeIO(AttributeIO[int, IntegrationTimeIORef]):
 
 
 class ScanDataIORef(AttributeIORef):
-    def __init__(self):
-        super().__init__(update_period=ONCE)
-
-
-class ScanDataIO(AttributeIO[np.ndarray, ScanDataIORef]):
     spec_tel_obj: SpecTel
 
     def __init__(self, spec_tel_obj: SpecTel):
-        super().__init__()
+        super().__init__(update_period=ONCE)
 
         self.spec_tel_obj = spec_tel_obj
 
+
+class SpectrometerScanIO(AttributeIO[np.ndarray, ScanDataIORef]):
+    spec_tel_obj: SpecTel
+
+    def __init__(self):
+        super().__init__()
+
     async def update(self, attr: AttrR[np.ndarray, ScanDataIORef]):
+        self.spec_tel_obj = attr.io_ref.spec_tel_obj
+
         try:
             scan_data = self.spec_tel_obj.get_last_scan()
 
@@ -109,9 +116,7 @@ class FlameController(Controller):
     spec_tel_obj: SpecTel
     output_data_file_path: str
 
-    integration_time: AttrRW[int, IntegrationTimeIORef] = AttrRW(
-        Int(), io_ref=IntegrationTimeIORef()
-    )
+    integration_time: AttrRW[int, IntegrationTimeIORef]
 
     # Time to acquire data over
     # NOT a value from the spectrometer
@@ -122,9 +127,7 @@ class FlameController(Controller):
     total_scans: AttrRW[int, DummyIntIORef]
 
     # Scan data from spectrometer
-    scan_data: AttrR[np.ndarray, ScanDataIORef] = AttrR(
-        Waveform(int, shape=(SCAN_DATA_LENGTH,)), io_ref=ScanDataIORef()
-    )
+    scan_data: AttrR[np.ndarray, ScanDataIORef]
 
     def __init__(
         self,
@@ -151,10 +154,14 @@ class FlameController(Controller):
 
         super().__init__(
             ios=[
-                IntegrationTimeIO(self.spec_tel_obj),
+                SpectrometerIntIO(),
                 DummyIntIO(),
-                ScanDataIO(self.spec_tel_obj),
+                SpectrometerScanIO(),
             ]
+        )
+
+        self.integration_time = AttrRW(
+            Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
         )
 
         self.acquisition_period = AttrRW(
@@ -162,6 +169,11 @@ class FlameController(Controller):
         )
 
         self.total_scans = AttrRW(Int(), io_ref=DummyIntIORef(default_total_scans))
+
+        self.scan_data = AttrR(
+            Waveform(int, shape=(SCAN_DATA_LENGTH,)),
+            io_ref=ScanDataIORef(self.spec_tel_obj),
+        )
 
     async def connect(self):
         await super().connect()
