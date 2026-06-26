@@ -13,6 +13,10 @@ from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
 @dataclass
 class IntegrationTimeIORef(AttributeIORef):
+    """
+    Ref for integration time on a FastCS controller
+    """
+
     spec_tel_obj: SpecTel
 
     def __init__(self, spec_tel_obj: SpecTel):
@@ -22,12 +26,22 @@ class IntegrationTimeIORef(AttributeIORef):
 
 
 class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
+    """
+    IO for integration time on a FastCS controller
+    """
+
     spec_tel_obj: SpecTel
 
     def __init__(self):
         super().__init__()
 
     async def update(self, attr: AttrR[int, IntegrationTimeIORef]):
+        """
+        Sets the integration time attribute based on the value on the spectrometer
+        on controller start up
+        This should be called once by FastCS, all future updates should
+        be called from send method
+        """
         self.spec_tel_obj = attr.io_ref.spec_tel_obj
 
         try:
@@ -42,6 +56,10 @@ class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
             )
 
     async def send(self, attr: AttrW[int, IntegrationTimeIORef], value: int):
+        """
+        Updates integration time value on controller
+        Calls update method to make sure value was set correct and set read value
+        """
         self.spec_tel_obj.set_integration_time(value)
 
         # Make sure readback value is inline with what was set
@@ -51,6 +69,10 @@ class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
 
 @dataclass
 class ScanDataIORef(AttributeIORef):
+    """
+    Reference for scan attribute on a FastCS controller
+    """
+
     spec_tel_obj: SpecTel
 
     def __init__(self, spec_tel_obj: SpecTel):
@@ -60,12 +82,22 @@ class ScanDataIORef(AttributeIORef):
 
 
 class SpectrometerScanIO(AttributeIO[np.ndarray, ScanDataIORef]):
+    """
+    IO for scan attributes on a FastCS controller
+    """
+
     spec_tel_obj: SpecTel
 
     def __init__(self):
         super().__init__()
 
     async def update(self, attr: AttrR[np.ndarray, ScanDataIORef]):
+        """
+        Sets the scan data attribute based on the last scan the spectrometer took
+        on controller start up
+        This should be called once. All future updates should be done by
+        controller commands
+        """
         self.spec_tel_obj = attr.io_ref.spec_tel_obj
 
         try:
@@ -82,6 +114,11 @@ class SpectrometerScanIO(AttributeIO[np.ndarray, ScanDataIORef]):
 
 @dataclass
 class DummyIntIORef(AttributeIORef):
+    """
+    Reference for a int attribute on a FastCS controller that
+    is not a property of the device
+    """
+
     default_value: int
 
     def __init__(self, default_value: int):
@@ -90,7 +127,16 @@ class DummyIntIORef(AttributeIORef):
 
 
 class DummyIntIO(AttributeIO[int, DummyIntIORef]):
+    """
+    IO for integer attribtues on a FastCS controller that are
+    not properties of the device
+    """
+
     async def update(self, attr: AttrR[int, DummyIntIORef]):
+        """
+        Sets the default value for the attribute
+        SHOULD ONLY BE CALLED ONCE (Ref should habe update_period=ONCE)
+        """
 
         await attr.update(attr.io_ref.default_value)
 
@@ -105,6 +151,11 @@ class DummyIntIO(AttributeIO[int, DummyIntIORef]):
 # Or would this break fastcs??
 @dataclass
 class DummyStrIORef(AttributeIORef):
+    """
+    Reference for a string attribute on a FastCS controller that
+    is not a property of the device
+    """
+
     default_value: str
 
     def __init__(self, default_value: str):
@@ -113,7 +164,16 @@ class DummyStrIORef(AttributeIORef):
 
 
 class DummyStrIO(AttributeIO[str, DummyStrIORef]):
+    """
+    IO for string attribtues on a FastCS controller that are
+    not properties of the device
+    """
+
     async def update(self, attr: AttrR[str, DummyStrIORef]):
+        """
+        Sets the default value for the attribute
+        SHOULD ONLY BE CALLED ONCE (Ref should habe update_period=ONCE)
+        """
 
         await attr.update(attr.io_ref.default_value)
 
