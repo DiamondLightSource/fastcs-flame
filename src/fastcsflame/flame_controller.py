@@ -81,44 +81,20 @@ class ScanDataIO(AttributeIO[np.ndarray, ScanDataIORef]):
             )
 
 
-class AcquisitionPeriodIORef(AttributeIORef):
-    def __init__(self):
+class DummyIntIORef(AttributeIORef):
+    default_value: int
+
+    def __init__(self, default_value: int):
         super().__init__(update_period=ONCE)
+        self.default_value = default_value
 
 
-class AcquisitionPeriodIO(AttributeIO[int, AcquisitionPeriodIORef]):
-    initial_value: int
+class DummyIntIO(AttributeIO[int, DummyIntIORef]):
+    async def update(self, attr: AttrR[int, DummyIntIORef]):
 
-    def __init__(self, initial_value: int):
-        self.initial_value = initial_value
+        await attr.update(attr.io_ref.default_value)
 
-    async def update(self, attr: AttrR[int, AcquisitionPeriodIORef]):
-
-        await attr.update(self.initial_value)
-
-    async def send(self, attr: AttrW[int, AcquisitionPeriodIORef], value: int):
-
-        # update RBV to match written value
-        if isinstance(attr, AttrRW):
-            await attr.update(value)
-
-
-class TotalScansIORef(AttributeIORef):
-    def __init__(self):
-        super().__init__(update_period=ONCE)
-
-
-class TotalScansIO(AttributeIO[int, TotalScansIORef]):
-    initial_value: int
-
-    def __init__(self, initial_value: int):
-        self.initial_value = initial_value
-
-    async def update(self, attr: AttrR[int, TotalScansIORef]):
-
-        await attr.update(self.initial_value)
-
-    async def send(self, attr: AttrW[int, TotalScansIORef], value: int):
+    async def send(self, attr: AttrW[int, DummyIntIORef], value: int):
 
         # update RBV to match written value
         if isinstance(attr, AttrRW):
@@ -139,13 +115,11 @@ class FlameController(Controller):
 
     # Time to acquire data over
     # NOT a value from the spectrometer
-    acquisition_period: AttrRW[int, AcquisitionPeriodIORef] = AttrRW(
-        Int(), io_ref=AcquisitionPeriodIORef()
-    )
+    acquisition_period: AttrRW[int, DummyIntIORef]
 
     # Number of scans to perform in acquisition period
     # NOT a value from the spectrometer
-    total_scans: AttrRW[int, TotalScansIORef] = AttrRW(Int(), io_ref=TotalScansIORef())
+    total_scans: AttrRW[int, DummyIntIORef]
 
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef] = AttrR(
@@ -178,11 +152,16 @@ class FlameController(Controller):
         super().__init__(
             ios=[
                 IntegrationTimeIO(self.spec_tel_obj),
-                AcquisitionPeriodIO(default_acquisition_period),
-                TotalScansIO(default_total_scans),
+                DummyIntIO(),
                 ScanDataIO(self.spec_tel_obj),
             ]
         )
+
+        self.acquisition_period = AttrRW(
+            Int(), io_ref=DummyIntIORef(default_acquisition_period)
+        )
+
+        self.total_scans = AttrRW(Int(), io_ref=DummyIntIORef(default_total_scans))
 
     async def connect(self):
         await super().connect()
