@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import Controller
-from fastcs.datatypes import Int, Waveform
+from fastcs.datatypes import Int, String, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
 from numpy.typing import NDArray
@@ -12,6 +12,8 @@ from numpy.typing import NDArray
 from fastcsflame.flame_controller_attributes import (
     DummyIntIO,
     DummyIntIORef,
+    DummyStrIO,
+    DummyStrIORef,
     IntegrationTimeIORef,
     ScanDataIORef,
     SpectrometerIntIO,
@@ -44,6 +46,9 @@ class FlameController(Controller):
     # NOT a value from the spectrometer
     total_scans: AttrRW[int, DummyIntIORef]
 
+    nexus_save_file_path: AttrRW[str, DummyStrIORef]
+    nexus_save_file_name: AttrRW[str, DummyStrIORef]
+
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef]
 
@@ -54,6 +59,8 @@ class FlameController(Controller):
         output_data_file_path: str = "",
         default_acquisition_period: int = 45,
         default_total_scans: int = 3,
+        default_nexus_save_file_path: str = "./",
+        default_nexus_save_file_name: str = "data.nxs",
     ):
         """
         Creates controller object
@@ -74,6 +81,7 @@ class FlameController(Controller):
             ios=[
                 SpectrometerIntIO(),
                 DummyIntIO(),
+                DummyStrIO(),
                 SpectrometerScanIO(),
             ]
         )
@@ -87,6 +95,13 @@ class FlameController(Controller):
         )
 
         self.total_scans = AttrRW(Int(), io_ref=DummyIntIORef(default_total_scans))
+
+        self.nexus_save_file_path = AttrRW(
+            String(), io_ref=DummyStrIORef(default_nexus_save_file_path)
+        )
+        self.nexus_save_file_name = AttrRW(
+            String(), io_ref=DummyStrIORef(default_nexus_save_file_name)
+        )
 
         self.scan_data = AttrR(
             Waveform(int, shape=(SCAN_DATA_LENGTH,)),

@@ -99,3 +99,26 @@ class DummyIntIO(AttributeIO[int, DummyIntIORef]):
         # update RBV to match written value
         if isinstance(attr, AttrRW):
             await attr.update(value)
+
+
+# Could this and DummyIntIORef be 1 generic class??
+# Or would this break fastcs??
+@dataclass
+class DummyStrIORef(AttributeIORef):
+    default_value: str
+
+    def __init__(self, default_value: str):
+        super().__init__(update_period=ONCE)
+        self.default_value = default_value
+
+
+class DummyStrIO(AttributeIO[str, DummyStrIORef]):
+    async def update(self, attr: AttrR[str, DummyStrIORef]):
+
+        await attr.update(attr.io_ref.default_value)
+
+    async def send(self, attr: AttrW[str, DummyStrIORef], value: str):
+
+        # update RBV to match written value
+        if isinstance(attr, AttrRW):
+            await attr.update(value)
