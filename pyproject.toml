@@ -29,6 +29,7 @@ dev = [
     "pre-commit",
     "pyright",
     "pytest",
+    "pytest-asyncio",
     "pytest-cov",
     "ruff",
     "tox-uv",
