@@ -95,14 +95,14 @@ class Hdf5FileBuilder:
         data_group = entry_group.create_group("DATA")
         data_group.attrs["axes"] = "Time x Wavelength"
         data_group.attrs["signal"] = "Intensity"
-        data_group.create_dataset("DATA", data)
+        data_group.create_dataset("DATA", data=data)
 
         time_axis = data_group.create_dataset(
-            "TIME_AXIS", times.astype(self.datetime_dtype)
+            "TIME_AXIS", data=times.astype(self.datetime_dtype)
         )
         time_axis.attrs["long_name"] = "Time"
 
         wavelength_axis = data_group.create_dataset(
-            "WAVELENGTH_AXIS", self._wavelengths
+            "WAVELENGTH_AXIS", data=self._wavelengths
         )
         wavelength_axis.attrs["long_name"] = "Wavelength"
