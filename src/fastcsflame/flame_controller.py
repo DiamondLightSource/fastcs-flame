@@ -48,6 +48,9 @@ class FlameController(Controller):
 
     nexus_save_file_path: AttrRW[str, DummyStrIORef]
     nexus_save_file_name: AttrRW[str, DummyStrIORef]
+    title: AttrRW[str, DummyStrIORef]
+    sample_name: AttrRW[str, DummyStrIORef]
+    sample_id: AttrRW[str, DummyStrIORef]
 
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef]
@@ -62,6 +65,9 @@ class FlameController(Controller):
         default_total_scans: int = 3,
         default_nexus_save_file_path: str = "./",
         default_nexus_save_file_name: str = "data.nxs",
+        default_title: str = "Experiment Title",
+        default_sample_name: str = "Sample Name",
+        default_sample_id: str = "SampleID",
     ):
         """
         Creates controller object
@@ -103,6 +109,9 @@ class FlameController(Controller):
         self.nexus_save_file_name = AttrRW(
             String(), io_ref=DummyStrIORef(default_nexus_save_file_name)
         )
+        self.title = AttrRW(String(), io_ref=DummyStrIORef(default_title))
+        self.sample_name = AttrRW(String(), io_ref=DummyStrIORef(default_sample_name))
+        self.sample_id = AttrRW(String(), io_ref=DummyStrIORef(default_sample_id))
 
         self.scan_data = AttrR(
             Waveform(int, shape=(SCAN_DATA_LENGTH,)),
@@ -180,9 +189,9 @@ class FlameController(Controller):
         self.file_builder.create_h5_file(
             self.nexus_save_file_path.get(),
             self.nexus_save_file_name.get(),
-            "",
-            "",
-            "",
+            self.title.get(),
+            self.sample_name.get(),
+            self.sample_id.get(),
             np.array(acquisition_data),
             np.array(actual_scan_times),
         )
