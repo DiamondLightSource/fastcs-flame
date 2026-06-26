@@ -51,6 +51,8 @@ class Hdf5FileBuilder:
         self._create_sample_group(entry_group, sample_name, sample_id)
         self._create_data_group(entry_group, data, times)
 
+        return h5file
+
     def time_typecast(self, time_value: np.datetime64):
         # Stupid
         return np.array([time_value]).astype(self.datetime_dtype)
