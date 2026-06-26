@@ -85,7 +85,9 @@ class Hdf5FileBuilder:
     ):
         sample_group = entry_group.create_group("SAMPLE")
         sample_group.create_dataset("name", dtype=self.string_dtype, data=[sample_name])
-        sample_group.create_dataset("name", dtype=self.string_dtype, data=[sample_id])
+        sample_group.create_dataset(
+            "sample_id", dtype=self.string_dtype, data=[sample_id]
+        )
 
     def _create_data_group(
         self, entry_group: h5py.Group, data: NDArray, times: NDArray
