@@ -17,7 +17,8 @@ def basic_file():
 
     # Is CI not going to like me trying to make files??
     file = fb.create_h5_file("./", "data.nxs", "", "", "", data, times)
-    return file
+    yield file
+    file.close()
 
 
 def test_entry_structure(basic_file):
