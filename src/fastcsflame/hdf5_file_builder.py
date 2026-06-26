@@ -61,8 +61,8 @@ class Hdf5FileBuilder:
         definition_dataset = entry_group.create_dataset(
             "definition", dtype=self.string_dtype, data=[self._definition]
         )
-        definition_dataset["@version"] = self._version
-        definition_dataset["@URL"] = self._url
+        definition_dataset.attrs["@version"] = self._version
+        definition_dataset.attrs["@URL"] = self._url
 
     def _create_instrument_group(self, entry_group: h5py.Group):
         instrument_group = entry_group.create_group("INSTRUMENT")
@@ -91,16 +91,16 @@ class Hdf5FileBuilder:
         self, entry_group: h5py.Group, data: NDArray, times: NDArray
     ):
         data_group = entry_group.create_group("DATA")
-        data_group["axes"] = "Time x Wavelength"
-        data_group["signal"] = "Intensity"
+        data_group.attrs["axes"] = "Time x Wavelength"
+        data_group.attrs["signal"] = "Intensity"
         data_group.create_dataset("DATA", data)
 
         time_axis = data_group.create_dataset(
             "TIME_AXIS", times.astype(self.datetime_dtype)
         )
-        time_axis["long_name"] = "Time"
+        time_axis.attrs["long_name"] = "Time"
 
         wavelength_axis = data_group.create_dataset(
             "WAVELENGTH_AXIS", self._wavelengths
         )
-        wavelength_axis["long_name"] = "Wavelength"
+        wavelength_axis.attrs["long_name"] = "Wavelength"
