@@ -5,6 +5,9 @@ import pytest
 from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
 
 
+# TODO: Add some sort of clean up in tests that close this incase of an error
+# Otherwise all tests after will error too
+# Also delete file after tests
 @pytest.fixture
 def basic_file():
     fb = Hdf5FileBuilder()
@@ -46,14 +49,14 @@ def test_instrument_structure(basic_file):
     instrument_group = entry_group["INSTRUMENT"]
     assert isinstance(instrument_group, h5py.Group)
 
-    beam_type_group = entry_group["beam_TPYE"]
+    beam_type_group = instrument_group["beam_TYPE"]
     assert isinstance(beam_type_group, h5py.Group)
-    detector_type_group = entry_group["detector_TYPE"]
+    detector_type_group = instrument_group["detector_TYPE"]
     assert isinstance(detector_type_group, h5py.Group)
 
     parameter_reliability_field = beam_type_group["parameter_reliability"]
     assert isinstance(parameter_reliability_field, h5py.Dataset)
-    detector_channel_type_field = entry_group["detector_channel_type"]
+    detector_channel_type_field = detector_type_group["detector_channel_type"]
     assert isinstance(detector_channel_type_field, h5py.Dataset)
 
 
@@ -65,7 +68,7 @@ def test_sample_structure(basic_file):
 
     name_field = sample_group["name"]
     assert isinstance(name_field, h5py.Dataset)
-    sample_id_field = sample_group["sample_id_field"]
+    sample_id_field = sample_group["sample_id"]
     assert isinstance(sample_id_field, h5py.Dataset)
 
 
