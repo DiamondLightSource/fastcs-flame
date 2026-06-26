@@ -16,7 +16,7 @@ class Hdf5FileBuilder:
     # This seems like a really stupid way to do this but its what they
     # do in the documentation
     # Maybe set it in __init__ or create_h5_file when we actually have time data??
-    datetime_dtype = h5py.opaque_dtype(np.array([np.datetime64("2005-02-25")]))
+    datetime_dtype = h5py.opaque_dtype(np.array([np.datetime64("2005-02-25")]).dtype)
 
     def __init__(self):
         pass
