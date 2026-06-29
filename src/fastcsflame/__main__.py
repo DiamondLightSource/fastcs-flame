@@ -35,7 +35,7 @@ def main(args: Sequence[str] | None = None) -> None:
     epics_ca = EpicsCATransport(gui=gui_options)
 
     flame_controller = FlameController(
-        "172.23.91.5", 7016, output_data_file_path="./data.txt"
+        "172.23.91.5", 7016, default_nexus_save_file_path="./data.txt"
     )
     flame_controller.set_path(["FLAME"])
 
