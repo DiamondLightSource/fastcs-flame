@@ -6,11 +6,11 @@ from socket import socket
 class DummySpectrometer:
     server_socket: socket
 
-    _version: int = 4110
-    _integration_time: int = 10
-    _last_scan_data: list[int]
-    _scan_data_length = 2044
-    _chunk_size: int = 1024
+    version: int = 4110
+    integration_time: int = 10
+    last_scan_data: list[int]
+    scan_data_length = 2044
+    chunk_size: int = 1024
 
     def __init__(self, port: int):
         """
@@ -19,8 +19,8 @@ class DummySpectrometer:
         """
         self.server_socket = socket()
         self.server_socket.bind(("", port))
-        self._last_scan_data = []
-        self._randomise_scan_data()
+        self.last_scan_data = []
+        self.randomise_scan_data()
 
     async def start(self, startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0"):
         """
@@ -58,13 +58,13 @@ class DummySpectrometer:
 
         # Keep taking chunks until the message is all sent
         while True:
-            if len(response) < self._chunk_size:
+            if len(response) < self.chunk_size:
                 connection.send(response)
                 return
 
             # take first chunk of the message and send it
-            next_chunk = response[0 : self._chunk_size]
-            response = response[self._chunk_size :]
+            next_chunk = response[0 : self.chunk_size]
+            response = response[self.chunk_size :]
             connection.send(next_chunk)
 
     def _handle_request(self, request: str) -> bytes:
@@ -97,18 +97,18 @@ class DummySpectrometer:
     # (handle request mapping and including message in repsonse)
     # TODO: Figure out a way to get rid of it
     def get_version(self) -> bytes:
-        return self.wrap_response("v", str(self._version) + " ")
+        return self.wrap_response("v", str(self.version) + " ")
 
     def get_integration_time(self) -> bytes:
-        return self.wrap_response("?I", str(self._integration_time) + " ")
+        return self.wrap_response("?I", str(self.integration_time) + " ")
 
     def set_integration_time(self, request: str) -> bytes:
         if "\n" not in request:
             # TODO: make sure this is correct
             return b"\x15"
         new_integration_time = int(request[1:].split("\n")[0].rstrip())
-        self._integration_time = new_integration_time
-        return self.wrap_response("I" + str(self._integration_time) + "\n\r", " ")
+        self.integration_time = new_integration_time
+        return self.wrap_response("I" + str(self.integration_time) + "\n\r", " ")
 
     def get_last_scan(self) -> bytes:
         return self.wrap_response("Z", self._scan_string())
@@ -117,7 +117,7 @@ class DummySpectrometer:
         """
         Conducts a new scan and returns the result of it
         """
-        self._randomise_scan_data()
+        self.randomise_scan_data()
         return self.wrap_response("S", self._scan_string(), delimeter=b"\02")
 
     def _scan_string(self) -> str:
@@ -130,7 +130,7 @@ class DummySpectrometer:
         # 5th value might be different for an actual scan vs getting last scan
         scan_string = "65535 0 1 8 0 0 0 "
 
-        for value in self._last_scan_data:
+        for value in self.last_scan_data:
             scan_string += str(value)
             scan_string += " "
 
@@ -138,24 +138,24 @@ class DummySpectrometer:
 
         return scan_string
 
-    def _randomise_scan_data(self):
+    def randomise_scan_data(self):
         """
         Replaces the existing _last_scan_data list with a new random one
         """
         # TODO: could make this a smoother distribution but this is not important
         last_last_value = 0
-        if self._last_scan_data != []:
-            last_last_value = self._last_scan_data[-1]
-        self._last_scan_data = []
-        for _ in range(self._scan_data_length):
-            self._last_scan_data.append(random.randint(900, 1200))
+        if self.last_scan_data != []:
+            last_last_value = self.last_scan_data[-1]
+        self.last_scan_data = []
+        for _ in range(self.scan_data_length):
+            self.last_scan_data.append(random.randint(900, 1200))
 
         # Ensure that the last value is not the same as before
         # This means we can test a new scan has actually happened by comparing
         # the last value
         # Such a low probability of happening anyway
-        if self._last_scan_data[-1] == last_last_value:
-            self._last_scan_data[-1] += 1
+        if self.last_scan_data[-1] == last_last_value:
+            self.last_scan_data[-1] += 1
 
     @staticmethod
     def wrap_response(
