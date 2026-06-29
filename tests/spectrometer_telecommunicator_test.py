@@ -18,9 +18,17 @@ def setup_dummy_spectrometer(port: int):
 
 
 def custom_setup_dummy_spectrometer(
-    port: int, startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0"
+    port: int,
+    startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0",
+    bad_version_response=False,
 ):
     dummy_spectrometer = DummySpectrometer(port)
+    if bad_version_response:
+
+        def new_get_version() -> bytes:
+            return dummy_spectrometer.wrap_response("v", "", delimeter=b"\x15")
+
+        dummy_spectrometer.get_version = new_get_version
     asyncio.run(dummy_spectrometer.start(startup_message=startup_message))
 
 
@@ -111,6 +119,29 @@ async def test_get_version():
 
     if SpecTel.socket_obj is not None:
         SpecTel.socket_obj.send(b"")
+
+    if spec_tel_object.socket_obj is not None:
+        spec_tel_object.socket_obj.close()
+
+
+@pytest.mark.asyncio
+async def test_invalid_response():
+    mp_context = multiprocessing.get_context()
+
+    server_process = mp_context.Process(
+        target=custom_setup_dummy_spectrometer,
+        args=[7016],
+        kwargs={"bad_version_response": True},
+    )
+    server_process.start()
+
+    await asyncio.sleep(1)
+
+    spec_tel_object = SpecTel("127.0.0.1", 7016)
+    spec_tel_object.connect()
+
+    with pytest.raises(UnexpectedResponseError):
+        spec_tel_object.get_version()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
