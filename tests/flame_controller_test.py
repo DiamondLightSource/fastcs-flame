@@ -92,3 +92,16 @@ async def test_controller_initialisation():
     assert connected_pointer[0]
     assert flame_controller.integration_time.get() == spectrometer.integration_time
     assert lists_equal(flame_controller.scan_data.get(), spectrometer.last_scan_data)
+
+
+@pytest.mark.asyncio
+async def test_caput_integration_time():
+    (
+        flame_controller,
+        spectrometer,
+        _,
+    ) = await controller_spectrometer_and_connected_pointer()
+
+    new_integration_time = spectrometer.integration_time + 1
+    await flame_controller.integration_time.put(new_integration_time)
+    assert spectrometer.integration_time == new_integration_time
