@@ -12,13 +12,14 @@ class DummySpectrometer:
     scan_data_length = 2044
     chunk_size: int = 1024
 
-    def __init__(self, port: int):
+    def __init__(self, port: int, bind=True):
         """
         Binds a socket to a port on localhost (127.0.0.1)
         port: Port to bind socket to
         """
-        self.server_socket = socket()
-        self.server_socket.bind(("", port))
+        if bind:
+            self.server_socket = socket()
+            self.server_socket.bind(("", port))
         self.last_scan_data = []
         self.randomise_scan_data()
 
