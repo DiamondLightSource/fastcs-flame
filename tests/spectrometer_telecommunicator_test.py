@@ -66,9 +66,13 @@ async def test_connection():
 @pytest.mark.asyncio
 async def test_bad_socket():
 
+    spec_tel_object = SpecTel("127.0.0.1", 7016)
+
     with pytest.raises(ConnectionRefusedError):
-        spec_tel_object = SpecTel("127.0.0.1", 7016)
         spec_tel_object.connect()
+
+    if spec_tel_object.socket_obj is not None:
+        spec_tel_object.socket_obj.close()
 
 
 @pytest.mark.asyncio
