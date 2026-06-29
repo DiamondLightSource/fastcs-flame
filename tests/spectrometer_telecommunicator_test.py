@@ -55,10 +55,6 @@ async def test_connection():
     spec_tel_object = await spec_tel_coroutine()
     spec_tel_object.connect()
 
-    # Might not be necessary??
-    if SpecTel.socket_obj is not None:
-        SpecTel.socket_obj.send(b"")
-
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
 
@@ -121,9 +117,6 @@ async def test_get_version():
 
     spec_tel_object.get_version()
 
-    if SpecTel.socket_obj is not None:
-        SpecTel.socket_obj.send(b"")
-
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
 
@@ -158,9 +151,6 @@ async def test_get_integration_time():
 
     spec_tel_object.get_integration_time()
 
-    if SpecTel.socket_obj is not None:
-        SpecTel.socket_obj.send(b"")
-
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
 
@@ -176,9 +166,6 @@ async def test_set_integration_time():
 
     assert new_integration_time == spec_tel_object.get_integration_time()
 
-    if SpecTel.socket_obj is not None:
-        SpecTel.socket_obj.send(b"")
-
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
 
@@ -189,9 +176,6 @@ async def test_get_last_scan():
     spec_tel_object.connect()
 
     spec_tel_object.get_last_scan()
-
-    if SpecTel.socket_obj is not None:
-        SpecTel.socket_obj.send(b"")
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
@@ -207,9 +191,6 @@ async def test_scan():
     new_last_value = spec_tel_object.scan()[-1]
 
     assert last_last_value != new_last_value
-
-    if SpecTel.socket_obj is not None:
-        SpecTel.socket_obj.send(b"")
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
