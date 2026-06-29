@@ -49,6 +49,7 @@ class SpectrometerTelecommunicator:
             OSError
         """
         self.socket_obj = socket()
+        self.socket_obj.settimeout(5)
         self.socket_obj.connect((self.ip, self.port))
 
         # connection message is the initial message sent by the device when you connect

@@ -97,6 +97,9 @@ async def test_device_already_connected():
 
     with pytest.raises(TimeoutError):
         spec_tel_object.connect()
+    if spec_tel_object.socket_obj is not None:
+        spec_tel_object.socket_obj.close()
+    socket_obj.close()
 
 
 @pytest.mark.asyncio
