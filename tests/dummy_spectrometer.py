@@ -22,7 +22,7 @@ class DummySpectrometer:
         self._last_scan_data = []
         self._randomise_scan_data()
 
-    async def start(self):
+    async def start(self, startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0"):
         """
         Starts the server listening process
         This will respond to incomming requests until a "" is sent
@@ -38,7 +38,7 @@ class DummySpectrometer:
         connection, address = await loop.sock_accept(self.server_socket)
         # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
-        connection.send(b"\xff\xfa,k\x0f\xff\xf0")
+        connection.send(startup_message)
 
         # Recieve and process messages until the connection is closed
         while True:
