@@ -1,11 +1,8 @@
 import asyncio
-from pathlib import Path
 
 import pytest
 from fastcs.launch import FastCS
 from fastcs.logging import configure_logging
-from fastcs.transports.epics import EpicsGUIOptions
-from fastcs.transports.epics.ca import EpicsCATransport
 
 from dummy_spectrometer import DummySpectrometer
 from fastcsflame.flame_controller import FlameController
@@ -58,11 +55,6 @@ def replace_spec_tel_methods(spec_tel: SpecTel):
 async def controller_spectrometer_and_connected_pointer():
     configure_logging()
 
-    gui_options = EpicsGUIOptions(
-        output_dir=Path("./opi"), title="Demo Temperature Controller"
-    )
-    epics_ca = EpicsCATransport(gui=gui_options)
-
     flame_controller = FlameController(
         "172.23.91.5", 7016, default_nexus_save_file_path="./data.txt"
     )
@@ -70,7 +62,7 @@ async def controller_spectrometer_and_connected_pointer():
         flame_controller.spec_tel_obj
     )
     flame_controller.set_path(["FLAME"])
-    fastcs = FastCS(flame_controller, [epics_ca])
+    fastcs = FastCS(flame_controller, [])
 
     asyncio.create_task(fastcs.serve(interactive=False))
 
