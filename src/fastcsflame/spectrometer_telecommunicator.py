@@ -45,6 +45,7 @@ class SpectrometerTelecommunicator:
                 this could just mean its in binary mode)
         Unlikely errors:
             ConnectionRefusedError
+            ConnectionResetError
             OSError
         """
         self.socket_obj = socket()
