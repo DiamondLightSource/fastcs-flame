@@ -121,3 +121,27 @@ async def test_scan_data_command():
 
     assert not lists_equal(old_scan_data, new_scan_data)
     assert lists_equal(spectrometer.last_scan_data, new_scan_data)
+
+
+@pytest.mark.asyncio
+async def test_acquire_data_command():
+    (
+        flame_controller,
+        spectrometer,
+        _,
+    ) = await controller_spectrometer_and_connected_pointer()
+
+    acquisition_period = flame_controller.acquisition_period.get()
+    total_scans = flame_controller.total_scans.get()
+    old_scan_data = flame_controller.scan_data.get()
+
+    asyncio.create_task(flame_controller.acquire_data())
+
+    for _ in range(total_scans - 1):
+        # Just before the next scan starts
+        await asyncio.sleep((acquisition_period / total_scans) - 1)
+
+        # check the last scan went through and changed the data
+        new_scan_data = flame_controller.scan_data.get()
+        assert not lists_equal(old_scan_data, new_scan_data)
+        old_scan_data = new_scan_data
