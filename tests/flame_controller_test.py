@@ -129,7 +129,7 @@ async def test_caput_integration_time():
 
 @pytest.mark.asyncio
 async def test_scan_data_command():
-    (flame_controller, spectrometer) = await controller_ang_spectrometer()
+    flame_controller, spectrometer = await controller_ang_spectrometer()
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
@@ -140,28 +140,38 @@ async def test_scan_data_command():
 
 
 @pytest.mark.asyncio
-async def test_acquire_data_command():
-    (flame_controller, spectrometer) = await controller_ang_spectrometer()
+async def test_acquire_data_timings():
+    flame_controller, _ = await controller_ang_spectrometer()
 
-    acquisition_period = flame_controller.acquisition_period.get()
-    total_scans = flame_controller.total_scans.get()
-    old_scan_data = flame_controller.scan_data.get()
+    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
 
-    asyncio.create_task(flame_controller.acquire_data())
+    scan_start = np.datetime64(dt.now())
 
-    for _ in range(total_scans):
-        # Just before the next scan starts
-        await asyncio.sleep((acquisition_period / (total_scans - 1)) - 1)
+    await flame_controller.acquire_data()
 
-        # check the last scan went through and changed the data
-        new_scan_data = flame_controller.scan_data.get()
-        assert not lists_equal(old_scan_data, new_scan_data)
-        old_scan_data = new_scan_data
+    scan_end = np.datetime64(dt.now())
+
+    assert dummy_fb.create_h5_file_times_arg is not None
+    assert len(dummy_fb.create_h5_file_times_arg.shape) == 1
+    assert (
+        dummy_fb.create_h5_file_times_arg.shape[0] == flame_controller.total_scans.get()
+    )
+    assert np.datetime64(scan_start) < dummy_fb.create_h5_file_times_arg[0]
+    assert dummy_fb.create_h5_file_times_arg[-1] < np.datetime64(scan_end)
+    scan_period = (
+        dummy_fb.create_h5_file_times_arg[-1] - dummy_fb.create_h5_file_times_arg[0]
+    )
+    assert (
+        flame_controller.acquisition_period.get() - 1
+        < scan_period.item().total_seconds()
+        and scan_period.item().total_seconds()
+        < flame_controller.acquisition_period.get() + 1
+    )
 
 
 @pytest.mark.asyncio
-async def test_acquire_data_command_argument_change():
-    (flame_controller, spectrometer) = await controller_ang_spectrometer()
+async def test_acquire_data_timings_after_set():
+    flame_controller, _ = await controller_ang_spectrometer()
 
     await flame_controller.acquisition_period.put(
         flame_controller.acquisition_period.get() * 2
@@ -170,25 +180,35 @@ async def test_acquire_data_command_argument_change():
         int(flame_controller.total_scans.get() * 2 / 3)
     )
 
-    acquisition_period = flame_controller.acquisition_period.get()
-    total_scans = flame_controller.total_scans.get()
-    old_scan_data = flame_controller.scan_data.get()
+    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
 
-    asyncio.create_task(flame_controller.acquire_data())
+    scan_start = np.datetime64(dt.now())
 
-    for _ in range(total_scans):
-        # Just before the next scan starts
-        await asyncio.sleep((acquisition_period / (total_scans - 1)) - 1)
+    await flame_controller.acquire_data()
 
-        # check the last scan went through and changed the data
-        new_scan_data = flame_controller.scan_data.get()
-        assert not lists_equal(old_scan_data, new_scan_data)
-        old_scan_data = new_scan_data
+    scan_end = np.datetime64(dt.now())
+
+    assert dummy_fb.create_h5_file_times_arg is not None
+    assert len(dummy_fb.create_h5_file_times_arg.shape) == 1
+    assert (
+        dummy_fb.create_h5_file_times_arg.shape[0] == flame_controller.total_scans.get()
+    )
+    assert np.datetime64(scan_start) < dummy_fb.create_h5_file_times_arg[0]
+    assert dummy_fb.create_h5_file_times_arg[-1] < np.datetime64(scan_end)
+    scan_period = (
+        dummy_fb.create_h5_file_times_arg[-1] - dummy_fb.create_h5_file_times_arg[0]
+    )
+    assert (
+        flame_controller.acquisition_period.get() - 1
+        < scan_period.item().total_seconds()
+        and scan_period.item().total_seconds()
+        < flame_controller.acquisition_period.get() + 1
+    )
 
 
 @pytest.mark.asyncio
 async def test_create_file_call():
-    (flame_controller, spectrometer) = await controller_ang_spectrometer()
+    flame_controller, _ = await controller_ang_spectrometer()
 
     dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
 
