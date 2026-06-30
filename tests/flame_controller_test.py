@@ -13,13 +13,10 @@ from fastcsflame.spectrometer_telecommunicator import (
     AlreadyConnectedError,
     UnexpectedResponseError,
 )
-from fastcsflame.spectrometer_telecommunicator import (
-    SpectrometerTelecommunicator as SpecTel,
-)
 
 
-def replace_spec_tel_methods(
-    spec_tel: SpecTel,
+def replace_controllers_spec_tel_methods(
+    flame_controller: FlameController,
     error_connect=False,
     error_version=False,
     error_get_integration_time=False,
@@ -27,11 +24,13 @@ def replace_spec_tel_methods(
     error_get_last_scan=False,
     error_scan=False,
 ):
-    # This feels like a really bad way to do it
-    # But we cant replace the object in the controller
-    # as the attributes have stored a reference
-    # We need to modify the existing object instead
-    # Maybe this indicates the controller is not designed very well :(
+    # Cant replace the controllers spec_tel object directly as a lot of the
+    # Refs have a pointer to the old one
+    # This makes sense as the controller composes? the tel_spec
+    # However, this means its really tricky to mock the tel_spec object
+    # The best way I could think of doing it is replacing all methods
+    # This means we dont have to properly connect the spec_tel and spectrometer
+    spec_tel = flame_controller.spec_tel_obj
     spectrometer = DummySpectrometer(spec_tel.port, bind=False)
 
     def connect():
@@ -83,7 +82,7 @@ async def controller_ang_spectrometer(**kwargs):
     flame_controller = FlameController(
         "172.23.91.5", 7016, default_nexus_save_file_path="./data.txt"
     )
-    spectrometer = replace_spec_tel_methods(flame_controller.spec_tel_obj, **kwargs)
+    spectrometer = replace_controllers_spec_tel_methods(flame_controller, **kwargs)
     flame_controller.set_path(["FLAME"])
     fastcs = FastCS(flame_controller, [])
 
