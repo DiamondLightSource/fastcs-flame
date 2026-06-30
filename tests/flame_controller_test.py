@@ -140,10 +140,10 @@ async def test_scan_data_command():
 
 
 @pytest.mark.asyncio
-async def test_acquire_data_timings():
+async def test_acquire_data_timings(tmp_path):
     flame_controller, _ = await controller_ang_spectrometer()
 
-    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
+    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
 
     scan_start = np.datetime64(dt.now())
 
@@ -170,7 +170,7 @@ async def test_acquire_data_timings():
 
 
 @pytest.mark.asyncio
-async def test_acquire_data_timings_after_set():
+async def test_acquire_data_timings_after_set(tmp_path):
     flame_controller, _ = await controller_ang_spectrometer()
 
     await flame_controller.acquisition_period.put(
@@ -180,7 +180,7 @@ async def test_acquire_data_timings_after_set():
         int(flame_controller.total_scans.get() * 2 / 3)
     )
 
-    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
+    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
 
     scan_start = np.datetime64(dt.now())
 
@@ -207,10 +207,10 @@ async def test_acquire_data_timings_after_set():
 
 
 @pytest.mark.asyncio
-async def test_create_file_call():
+async def test_create_file_call(tmp_path):
     flame_controller, _ = await controller_ang_spectrometer()
 
-    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
+    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
 
     scan_start = np.datetime64(dt.now())
 

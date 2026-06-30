@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import h5py
 from numpy.typing import NDArray
 
@@ -5,6 +7,13 @@ from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
 
 
 class DummyHdf5FileBuilder(Hdf5FileBuilder):
+    # The file WILL actually be created in this location
+    # If youre running this in a test use pytests tmp_path fixture
+    file_write_location: Path
+
+    def __init__(self, file_write_location: Path):
+        self.file_write_location = file_write_location
+
     create_h5_file_destination_arg: str | None = None
     create_h5_file_filename_arg: str | None = None
     create_h5_file_title_arg: str | None = None
@@ -35,4 +44,4 @@ class DummyHdf5FileBuilder(Hdf5FileBuilder):
         print("in create call")
         print(sample_name)
 
-        return h5py.File(destination + filename, "w")
+        return h5py.File(str(self.file_write_location) + "data.nxs", "w")
