@@ -4,7 +4,7 @@ from datetime import datetime as dt
 import numpy as np
 import pytest
 from fastcs.launch import FastCS
-from fastcs.logging import configure_logging
+from fastcs.logging import configure_logging, logger
 
 from dummy_hdf5_file_builder import DummyHdf5FileBuilder
 from dummy_spectrometer import DummySpectrometer
@@ -13,6 +13,13 @@ from fastcsflame.spectrometer_telecommunicator import (
     AlreadyConnectedError,
     UnexpectedResponseError,
 )
+
+
+@pytest.fixture
+def loguru_caplog(caplog):
+    handler_id = logger.add(caplog.handler, format="{message}", level="TRACE")
+    yield caplog
+    logger.remove(handler_id)
 
 
 def replace_controllers_spec_tel_methods(
@@ -244,6 +251,66 @@ async def test_create_file_call(tmp_path):
         scan_start < time and time < scan_end
         for time in dummy_fb.create_h5_file_times_arg
     )
+
+
+@pytest.mark.asyncio
+async def test_bad_connection(loguru_caplog):
+    try:
+        flame_controller, _ = await controller_ang_spectrometer(error_connect=True)
+    except pytest.PytestUnraisableExceptionWarning:
+        pass
+
+    assert "UnexpectedResponseError" in loguru_caplog.text
+
+
+@pytest.mark.asyncio
+async def test_bad_integration_time_get(loguru_caplog):
+    try:
+        flame_controller, _ = await controller_ang_spectrometer(
+            error_get_integration_time=True
+        )
+    except pytest.PytestUnraisableExceptionWarning:
+        pass
+
+    assert "UnexpectedResponseError" in loguru_caplog.text
+
+
+@pytest.mark.asyncio
+async def test_bad_last_scan_data_get(loguru_caplog):
+    try:
+        flame_controller, _ = await controller_ang_spectrometer(
+            error_get_last_scan=True
+        )
+    except pytest.PytestUnraisableExceptionWarning:
+        pass
+
+    assert "UnexpectedResponseError" in loguru_caplog.text
+
+
+@pytest.mark.asyncio
+async def test_bad_integration_time_set(loguru_caplog):
+    flame_controller, _ = await controller_ang_spectrometer(error_get_last_scan=True)
+
+    try:
+        await flame_controller.integration_time.put(
+            flame_controller.integration_time.get() + 1
+        )
+    except pytest.PytestUnraisableExceptionWarning:
+        pass
+
+    assert "UnexpectedResponseError" in loguru_caplog.text
+
+
+@pytest.mark.asyncio
+async def test_bad_scan_command(loguru_caplog):
+    flame_controller, _ = await controller_ang_spectrometer(error_get_last_scan=True)
+
+    try:
+        await flame_controller.single_scan()
+    except pytest.PytestUnraisableExceptionWarning:
+        pass
+
+    assert "UnexpectedResponseError" in loguru_caplog.text
 
 
 # TODO: Test exceptions are raised correctly
