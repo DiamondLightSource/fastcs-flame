@@ -10,11 +10,23 @@ from dummy_hdf5_file_builder import DummyHdf5FileBuilder
 from dummy_spectrometer import DummySpectrometer
 from fastcsflame.flame_controller import SCAN_DATA_LENGTH, FlameController
 from fastcsflame.spectrometer_telecommunicator import (
+    AlreadyConnectedError,
+    UnexpectedResponseError,
+)
+from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
 
 
-def replace_spec_tel_methods(spec_tel: SpecTel):
+def replace_spec_tel_methods(
+    spec_tel: SpecTel,
+    error_connect=False,
+    error_version=False,
+    error_get_integration_time=False,
+    error_set_integration_time=False,
+    error_get_last_scan=False,
+    error_scan=False,
+):
     # This feels like a really bad way to do it
     # But we cant replace the object in the controller
     # as the attributes have stored a reference
@@ -24,24 +36,35 @@ def replace_spec_tel_methods(spec_tel: SpecTel):
     spectrometer = DummySpectrometer(spec_tel.port, bind=False)
 
     def connect():
+        if error_connect:
+            raise UnexpectedResponseError()
         if connected_pointer[0]:
-            # TOOD: Add exception for this (to actual class too)
-            print("already connected")
+            raise AlreadyConnectedError
         connected_pointer[0] = True
 
     def get_version() -> int:
+        if error_version:
+            raise UnexpectedResponseError()
         return spectrometer.version
 
     def get_integration_time() -> int:
+        if error_get_integration_time:
+            raise UnexpectedResponseError()
         return spectrometer.integration_time
 
     def set_integration_time(integration_time):
+        if error_set_integration_time:
+            raise UnexpectedResponseError()
         spectrometer.integration_time = integration_time
 
     def get_last_scan() -> list[int]:
+        if error_get_last_scan:
+            raise UnexpectedResponseError()
         return spectrometer.last_scan_data
 
     def scan() -> list[int]:
+        if error_scan:
+            raise UnexpectedResponseError()
         spectrometer.randomise_scan_data()
         return spectrometer.last_scan_data
 
