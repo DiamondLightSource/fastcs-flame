@@ -78,14 +78,14 @@ def replace_spec_tel_methods(
     return (connected_pointer, spectrometer)
 
 
-async def controller_spectrometer_and_connected_pointer():
+async def controller_spectrometer_and_connected_pointer(**kwargs):
     configure_logging()
 
     flame_controller = FlameController(
         "172.23.91.5", 7016, default_nexus_save_file_path="./data.txt"
     )
     connected_pointer, spectrometer = replace_spec_tel_methods(
-        flame_controller.spec_tel_obj
+        flame_controller.spec_tel_obj, **kwargs
     )
     flame_controller.set_path(["FLAME"])
     fastcs = FastCS(flame_controller, [])
