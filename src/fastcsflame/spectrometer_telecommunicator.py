@@ -11,6 +11,10 @@ class NotConnectedError(BaseException):
     pass
 
 
+class AlreadyConnectedError(Exception):
+    pass
+
+
 class SpectrometerTelecommunicator:
     """
     Communicates with Flame spectrometers using Telnet
@@ -20,6 +24,7 @@ class SpectrometerTelecommunicator:
     port: int
     recieve_buffer_size: int = 1024
     socket_obj: socket | None = None
+    connected: bool = False
 
     def __init__(self, ip: str, port: int):
         """
@@ -48,9 +53,16 @@ class SpectrometerTelecommunicator:
             ConnectionResetError
             OSError
         """
+
+        # TODO: Should check if socket_obj has been closed somehow
+        if self.connected:
+            raise AlreadyConnectedError("Connect method has already been run")
+
         self.socket_obj = socket()
         self.socket_obj.settimeout(5)
         self.socket_obj.connect((self.ip, self.port))
+
+        self.connected = True
 
         # connection message is the initial message sent by the device when you connect
         # I'm not 100% sure what it means yet
