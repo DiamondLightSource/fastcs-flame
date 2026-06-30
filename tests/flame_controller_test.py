@@ -1,11 +1,14 @@
 import asyncio
+from datetime import datetime as dt
 
+import numpy as np
 import pytest
 from fastcs.launch import FastCS
 from fastcs.logging import configure_logging
 
+from dummy_hdf5_file_builder import DummyHdf5FileBuilder
 from dummy_spectrometer import DummySpectrometer
-from fastcsflame.flame_controller import FlameController
+from fastcsflame.flame_controller import SCAN_DATA_LENGTH, FlameController
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
@@ -145,3 +148,47 @@ async def test_acquire_data_command():
         new_scan_data = flame_controller.scan_data.get()
         assert not lists_equal(old_scan_data, new_scan_data)
         old_scan_data = new_scan_data
+
+
+@pytest.mark.asyncio
+async def test_create_file_call():
+    (
+        flame_controller,
+        spectrometer,
+        _,
+    ) = await controller_spectrometer_and_connected_pointer()
+
+    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
+
+    scan_start = np.datetime64(dt.now())
+
+    await flame_controller.acquire_data()
+
+    scan_end = np.datetime64(dt.now())
+
+    assert (
+        dummy_fb.create_h5_file_destination_arg
+        == flame_controller.nexus_save_file_path.get()
+    )
+    assert (
+        dummy_fb.create_h5_file_filename_arg
+        == flame_controller.nexus_save_file_name.get()
+    )
+    assert dummy_fb.create_h5_file_title_arg == flame_controller.title.get()
+    assert dummy_fb.create_h5_file_sample_name_arg == flame_controller.sample_name.get()
+    assert dummy_fb.create_h5_file_sample_id_arg == flame_controller.sample_id.get()
+
+    assert dummy_fb.create_h5_file_data_arg is not None
+    assert (
+        dummy_fb.create_h5_file_data_arg.shape[0] == flame_controller.total_scans.get()
+    )
+    assert dummy_fb.create_h5_file_data_arg.shape[1] == SCAN_DATA_LENGTH
+
+    assert dummy_fb.create_h5_file_times_arg is not None
+    assert (
+        dummy_fb.create_h5_file_times_arg.shape[0] == flame_controller.total_scans.get()
+    )
+    assert all(
+        scan_start < time and time < scan_end
+        for time in dummy_fb.create_h5_file_times_arg
+    )
