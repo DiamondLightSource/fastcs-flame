@@ -32,15 +32,14 @@ def replace_spec_tel_methods(
     # as the attributes have stored a reference
     # We need to modify the existing object instead
     # Maybe this indicates the controller is not designed very well :(
-    connected_pointer = [False]
     spectrometer = DummySpectrometer(spec_tel.port, bind=False)
 
     def connect():
         if error_connect:
             raise UnexpectedResponseError()
-        if connected_pointer[0]:
+        if spec_tel.connected:
             raise AlreadyConnectedError
-        connected_pointer[0] = True
+        spec_tel.connected = True
 
     def get_version() -> int:
         if error_version:
@@ -75,18 +74,16 @@ def replace_spec_tel_methods(
     spec_tel.get_last_scan = get_last_scan
     spec_tel.scan = scan
 
-    return (connected_pointer, spectrometer)
+    return spectrometer
 
 
-async def controller_spectrometer_and_connected_pointer(**kwargs):
+async def controller_ang_spectrometer(**kwargs):
     configure_logging()
 
     flame_controller = FlameController(
         "172.23.91.5", 7016, default_nexus_save_file_path="./data.txt"
     )
-    connected_pointer, spectrometer = replace_spec_tel_methods(
-        flame_controller.spec_tel_obj, **kwargs
-    )
+    spectrometer = replace_spec_tel_methods(flame_controller.spec_tel_obj, **kwargs)
     flame_controller.set_path(["FLAME"])
     fastcs = FastCS(flame_controller, [])
 
@@ -97,7 +94,7 @@ async def controller_spectrometer_and_connected_pointer(**kwargs):
     # TODO: use a more precise method of waiting
     await asyncio.sleep(3)
 
-    return (flame_controller, spectrometer, connected_pointer)
+    return flame_controller, spectrometer
 
 
 def lists_equal(list1, list2):
@@ -112,10 +109,9 @@ async def test_controller_initialisation():
     (
         flame_controller,
         spectrometer,
-        connected_pointer,
-    ) = await controller_spectrometer_and_connected_pointer()
+    ) = await controller_ang_spectrometer()
 
-    assert connected_pointer[0]
+    assert flame_controller.spec_tel_obj.connected
     assert flame_controller.integration_time.get() == spectrometer.integration_time
     assert lists_equal(flame_controller.scan_data.get(), spectrometer.last_scan_data)
 
@@ -125,8 +121,7 @@ async def test_caput_integration_time():
     (
         flame_controller,
         spectrometer,
-        _,
-    ) = await controller_spectrometer_and_connected_pointer()
+    ) = await controller_ang_spectrometer()
 
     new_integration_time = spectrometer.integration_time + 1
     await flame_controller.integration_time.put(new_integration_time)
@@ -135,11 +130,7 @@ async def test_caput_integration_time():
 
 @pytest.mark.asyncio
 async def test_scan_data_command():
-    (
-        flame_controller,
-        spectrometer,
-        _,
-    ) = await controller_spectrometer_and_connected_pointer()
+    (flame_controller, spectrometer) = await controller_ang_spectrometer()
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
@@ -151,11 +142,7 @@ async def test_scan_data_command():
 
 @pytest.mark.asyncio
 async def test_acquire_data_command():
-    (
-        flame_controller,
-        spectrometer,
-        _,
-    ) = await controller_spectrometer_and_connected_pointer()
+    (flame_controller, spectrometer) = await controller_ang_spectrometer()
 
     acquisition_period = flame_controller.acquisition_period.get()
     total_scans = flame_controller.total_scans.get()
@@ -175,11 +162,7 @@ async def test_acquire_data_command():
 
 @pytest.mark.asyncio
 async def test_acquire_data_command_argument_change():
-    (
-        flame_controller,
-        spectrometer,
-        _,
-    ) = await controller_spectrometer_and_connected_pointer()
+    (flame_controller, spectrometer) = await controller_ang_spectrometer()
 
     await flame_controller.acquisition_period.put(
         flame_controller.acquisition_period.get() * 2
@@ -206,11 +189,7 @@ async def test_acquire_data_command_argument_change():
 
 @pytest.mark.asyncio
 async def test_create_file_call():
-    (
-        flame_controller,
-        spectrometer,
-        _,
-    ) = await controller_spectrometer_and_connected_pointer()
+    (flame_controller, spectrometer) = await controller_ang_spectrometer()
 
     dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder()
 
