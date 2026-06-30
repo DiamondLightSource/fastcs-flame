@@ -246,3 +246,8 @@ async def test_create_file_call():
         scan_start < time and time < scan_end
         for time in dummy_fb.create_h5_file_times_arg
     )
+
+
+# TODO: Test exceptions are raised correctly
+# This is quite tricky as FastCS handles and logs them
+# Will need to check logs instead??
