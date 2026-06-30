@@ -181,8 +181,12 @@ async def test_acquire_data_command_argument_change():
         _,
     ) = await controller_spectrometer_and_connected_pointer()
 
-    acquisition_period = flame_controller.acquisition_period.get() * 2
-    total_scans = int(flame_controller.total_scans.get() * 2 / 3)
+    await flame_controller.acquisition_period.put(
+        flame_controller.acquisition_period.get() * 2
+    )
+    await flame_controller.total_scans.put(
+        int(flame_controller.total_scans.get() * 2 / 3)
+    )
 
     acquisition_period = flame_controller.acquisition_period.get()
     total_scans = flame_controller.total_scans.get()
