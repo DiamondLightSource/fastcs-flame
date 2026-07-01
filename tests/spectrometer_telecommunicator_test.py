@@ -53,7 +53,7 @@ async def spec_tel_coroutine():
 @pytest.mark.asyncio
 async def test_connection():
     spec_tel_object = await spec_tel_coroutine()
-    spec_tel_object.connect()
+    await spec_tel_object.connect()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
@@ -65,7 +65,7 @@ async def test_bad_socket():
     spec_tel_object = SpecTel("127.0.0.1", 7016)
 
     with pytest.raises(ConnectionRefusedError):
-        spec_tel_object.connect()
+        await spec_tel_object.connect()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
@@ -87,7 +87,7 @@ async def test_bad_initial_connection_message():
 
     spec_tel_object = SpecTel("127.0.0.1", 7016)
     with pytest.raises(UnexpectedResponseError):
-        spec_tel_object.connect()
+        await spec_tel_object.connect()
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
 
@@ -104,7 +104,7 @@ async def test_device_already_connected():
     await loop.sock_recv(socket_obj, 1024)
 
     with pytest.raises(TimeoutError):
-        spec_tel_object.connect()
+        await spec_tel_object.connect()
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
     socket_obj.close()
@@ -113,9 +113,9 @@ async def test_device_already_connected():
 @pytest.mark.asyncio
 async def test_get_version():
     spec_tel_object = await spec_tel_coroutine()
-    spec_tel_object.connect()
+    await spec_tel_object.connect()
 
-    spec_tel_object.get_version()
+    await spec_tel_object.get_version()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
@@ -135,10 +135,10 @@ async def test_invalid_response():
     await asyncio.sleep(1)
 
     spec_tel_object = SpecTel("127.0.0.1", 7016)
-    spec_tel_object.connect()
+    await spec_tel_object.connect()
 
     with pytest.raises(UnexpectedResponseError):
-        spec_tel_object.get_version()
+        await spec_tel_object.get_version()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
@@ -147,9 +147,9 @@ async def test_invalid_response():
 @pytest.mark.asyncio
 async def test_get_integration_time():
     spec_tel_object = await spec_tel_coroutine()
-    spec_tel_object.connect()
+    await spec_tel_object.connect()
 
-    spec_tel_object.get_integration_time()
+    await spec_tel_object.get_integration_time()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
@@ -158,11 +158,11 @@ async def test_get_integration_time():
 @pytest.mark.asyncio
 async def test_set_integration_time():
     spec_tel_object = await spec_tel_coroutine()
-    spec_tel_object.connect()
+    await spec_tel_object.connect()
 
-    old_integration_time = spec_tel_object.get_integration_time()
+    old_integration_time = await spec_tel_object.get_integration_time()
     new_integration_time = old_integration_time + 1
-    spec_tel_object.set_integration_time(new_integration_time)
+    await spec_tel_object.set_integration_time(new_integration_time)
 
     assert new_integration_time == spec_tel_object.get_integration_time()
 
@@ -173,9 +173,9 @@ async def test_set_integration_time():
 @pytest.mark.asyncio
 async def test_get_last_scan():
     spec_tel_object = await spec_tel_coroutine()
-    spec_tel_object.connect()
+    await spec_tel_object.connect()
 
-    spec_tel_object.get_last_scan()
+    await spec_tel_object.get_last_scan()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
@@ -184,11 +184,11 @@ async def test_get_last_scan():
 @pytest.mark.asyncio
 async def test_scan():
     spec_tel_object = await spec_tel_coroutine()
-    spec_tel_object.connect()
+    await spec_tel_object.connect()
 
-    last_last_value = spec_tel_object.get_last_scan()[-1]
+    last_last_value = (await spec_tel_object.get_last_scan())[-1]
 
-    new_last_value = spec_tel_object.scan()[-1]
+    new_last_value = (await spec_tel_object.scan())[-1]
 
     assert last_last_value != new_last_value
 

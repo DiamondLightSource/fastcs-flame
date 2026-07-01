@@ -40,36 +40,37 @@ def replace_controllers_spec_tel_methods(
     spec_tel = flame_controller.spec_tel_obj
     spectrometer = DummySpectrometer(spec_tel.port, bind=False)
 
-    def connect():
+    async def connect():
         if error_connect:
             raise UnexpectedResponseError()
         if spec_tel.connected:
             raise AlreadyConnectedError
         spec_tel.connected = True
 
-    def get_version() -> int:
+    async def get_version() -> int:
         if error_version:
             raise UnexpectedResponseError()
         return spectrometer.version
 
-    def get_integration_time() -> int:
+    async def get_integration_time() -> int:
         if error_get_integration_time:
             raise UnexpectedResponseError()
         return spectrometer.integration_time
 
-    def set_integration_time(integration_time):
+    async def set_integration_time(integration_time):
         if error_set_integration_time:
             raise UnexpectedResponseError()
         spectrometer.integration_time = integration_time
 
-    def get_last_scan() -> list[int]:
+    async def get_last_scan() -> list[int]:
         if error_get_last_scan:
             raise UnexpectedResponseError()
         return spectrometer.last_scan_data
 
-    def scan() -> list[int]:
+    async def scan() -> list[int]:
         if error_scan:
             raise UnexpectedResponseError()
+        await asyncio.sleep(11)
         spectrometer.randomise_scan_data()
         return spectrometer.last_scan_data
 
