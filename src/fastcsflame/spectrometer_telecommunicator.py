@@ -26,6 +26,7 @@ class SpectrometerTelecommunicator:
     recieve_buffer_size: int = 1024
     socket_obj: socket | None = None
     connected: bool = False
+    timeout: float = 5.0
 
     def __init__(self, ip: str, port: int):
         """
@@ -61,11 +62,10 @@ class SpectrometerTelecommunicator:
 
         loop = asyncio.get_event_loop()
         self.socket_obj = socket()
-        self.socket_obj.settimeout(5)
         self.socket_obj.setblocking(False)
 
-        # self.socket_obj.connect((self.ip, self.port))
-        await loop.sock_connect(self.socket_obj, (self.ip, self.port))
+        async with asyncio.timeout(self.timeout):
+            await loop.sock_connect(self.socket_obj, (self.ip, self.port))
 
         self.connected = True
 
@@ -73,9 +73,10 @@ class SpectrometerTelecommunicator:
         # I'm not 100% sure what it means yet
         # But the socket needs to be cleared for the next message either way
         # Message can NOT be decoded into ascii (in binary??)
-        connection_message = await loop.sock_recv(
-            self.socket_obj, self.recieve_buffer_size
-        )
+        async with asyncio.timeout(self.timeout):
+            connection_message = await loop.sock_recv(
+                self.socket_obj, self.recieve_buffer_size
+            )
 
         # TODO: Add a case for binary start up message too
         # Maybe send signal to convert it ascii??
@@ -106,7 +107,10 @@ class SpectrometerTelecommunicator:
 
         self.socket_obj.send(query.encode("ascii"))
 
-        response_raw = await loop.sock_recv(self.socket_obj, self.recieve_buffer_size)
+        async with asyncio.timeout(self.timeout):
+            response_raw = await loop.sock_recv(
+                self.socket_obj, self.recieve_buffer_size
+            )
 
         return self._extract_response(response_raw)
 
@@ -137,9 +141,10 @@ class SpectrometerTelecommunicator:
 
         # Keep on recieving information until a response section contains the end signal
         while last_response_raw_section.rfind(end_signal) == -1:
-            last_response_raw_section = await loop.sock_recv(
-                self.socket_obj, self.recieve_buffer_size
-            )
+            async with asyncio.timeout(self.timeout):
+                last_response_raw_section = await loop.sock_recv(
+                    self.socket_obj, self.recieve_buffer_size
+                )
             response_raw += last_response_raw_section
 
         return self._extract_response(response_raw)
