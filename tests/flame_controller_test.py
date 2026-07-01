@@ -86,7 +86,7 @@ def replace_controllers_spec_tel_methods(
     return spectrometer
 
 
-async def controller_ang_spectrometer(**kwargs):
+async def controller_and_spectrometer(**kwargs):
     configure_logging()
 
     flame_controller = FlameController(
@@ -118,7 +118,7 @@ async def test_controller_initialisation():
     (
         flame_controller,
         spectrometer,
-    ) = await controller_ang_spectrometer()
+    ) = await controller_and_spectrometer()
 
     assert flame_controller.spec_tel_obj.connected
     assert flame_controller.integration_time.get() == spectrometer.integration_time
@@ -130,7 +130,7 @@ async def test_caput_integration_time():
     (
         flame_controller,
         spectrometer,
-    ) = await controller_ang_spectrometer()
+    ) = await controller_and_spectrometer()
 
     new_integration_time = spectrometer.integration_time + 1
     await flame_controller.integration_time.put(new_integration_time)
@@ -139,7 +139,7 @@ async def test_caput_integration_time():
 
 @pytest.mark.asyncio
 async def test_scan_data_command():
-    flame_controller, spectrometer = await controller_ang_spectrometer()
+    flame_controller, spectrometer = await controller_and_spectrometer()
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
@@ -151,7 +151,7 @@ async def test_scan_data_command():
 
 @pytest.mark.asyncio
 async def test_acquire_data_timings(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_ang_spectrometer()
+    flame_controller, _ = await controller_and_spectrometer()
 
     dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
 
@@ -182,7 +182,7 @@ async def test_acquire_data_timings(tmp_path, loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_acquire_data_timings_after_set(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_ang_spectrometer()
+    flame_controller, _ = await controller_and_spectrometer()
 
     await flame_controller.acquisition_period.put(
         flame_controller.acquisition_period.get() * 2
@@ -220,7 +220,7 @@ async def test_acquire_data_timings_after_set(tmp_path, loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_create_file_call(tmp_path):
-    flame_controller, _ = await controller_ang_spectrometer()
+    flame_controller, _ = await controller_and_spectrometer()
 
     dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
 
@@ -261,7 +261,7 @@ async def test_create_file_call(tmp_path):
 @pytest.mark.asyncio
 async def test_bad_connection(loguru_caplog):
     try:
-        flame_controller, _ = await controller_ang_spectrometer(error_connect=True)
+        flame_controller, _ = await controller_and_spectrometer(error_connect=True)
     except pytest.PytestUnraisableExceptionWarning:
         pass
 
@@ -271,7 +271,7 @@ async def test_bad_connection(loguru_caplog):
 @pytest.mark.asyncio
 async def test_bad_integration_time_get(loguru_caplog):
     try:
-        flame_controller, _ = await controller_ang_spectrometer(
+        flame_controller, _ = await controller_and_spectrometer(
             error_get_integration_time=True
         )
     except pytest.PytestUnraisableExceptionWarning:
@@ -283,7 +283,7 @@ async def test_bad_integration_time_get(loguru_caplog):
 @pytest.mark.asyncio
 async def test_bad_last_scan_data_get(loguru_caplog):
     try:
-        flame_controller, _ = await controller_ang_spectrometer(
+        flame_controller, _ = await controller_and_spectrometer(
             error_get_last_scan=True
         )
     except pytest.PytestUnraisableExceptionWarning:
@@ -294,7 +294,7 @@ async def test_bad_last_scan_data_get(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_bad_integration_time_set(loguru_caplog):
-    flame_controller, _ = await controller_ang_spectrometer(error_get_last_scan=True)
+    flame_controller, _ = await controller_and_spectrometer(error_get_last_scan=True)
 
     try:
         await flame_controller.integration_time.put(
@@ -308,7 +308,7 @@ async def test_bad_integration_time_set(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_bad_scan_command(loguru_caplog):
-    flame_controller, _ = await controller_ang_spectrometer(error_get_last_scan=True)
+    flame_controller, _ = await controller_and_spectrometer(error_get_last_scan=True)
 
     try:
         await flame_controller.single_scan()
@@ -320,7 +320,7 @@ async def test_bad_scan_command(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_acquire_data_too_fast(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_ang_spectrometer()
+    flame_controller, _ = await controller_and_spectrometer()
 
     # TODO: Remove magic numbers
     # Numbers just need to be set so that we have more than one scan every 11 seconds
