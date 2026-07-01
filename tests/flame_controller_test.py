@@ -148,7 +148,7 @@ async def test_scan_data_command():
 
 
 @pytest.mark.asyncio
-async def test_acquire_data_timings(tmp_path):
+async def test_acquire_data_timings(tmp_path, loguru_caplog):
     flame_controller, _ = await controller_ang_spectrometer()
 
     dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
@@ -175,10 +175,11 @@ async def test_acquire_data_timings(tmp_path):
         and scan_period.item().total_seconds()
         < flame_controller.acquisition_period.get() + 1
     )
+    assert "Scan is behind schedule" not in loguru_caplog.text
 
 
 @pytest.mark.asyncio
-async def test_acquire_data_timings_after_set(tmp_path):
+async def test_acquire_data_timings_after_set(tmp_path, loguru_caplog):
     flame_controller, _ = await controller_ang_spectrometer()
 
     await flame_controller.acquisition_period.put(
@@ -212,6 +213,7 @@ async def test_acquire_data_timings_after_set(tmp_path):
         and scan_period.item().total_seconds()
         < flame_controller.acquisition_period.get() + 1
     )
+    assert "Scan is behind schedule" not in loguru_caplog.text
 
 
 @pytest.mark.asyncio
@@ -312,6 +314,24 @@ async def test_bad_scan_command(loguru_caplog):
         pass
 
     assert "UnexpectedResponseError" in loguru_caplog.text
+
+
+@pytest.mark.asyncio
+async def test_acquire_data_too_fast(tmp_path, loguru_caplog):
+    flame_controller, _ = await controller_ang_spectrometer()
+
+    # TODO: Remove magic numbers
+    # Numbers just need to be set so that we have more than one scan every 11 seconds
+    # 11 seconds is the average time for a scan
+    # This should also get a constant variable in this file
+    await flame_controller.acquisition_period.put(20)
+    await flame_controller.total_scans.put(5)
+
+    flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
+
+    await flame_controller.acquire_data()
+
+    assert "Scan is behind schedule" in loguru_caplog.text
 
 
 # TODO: Test exceptions are raised correctly
