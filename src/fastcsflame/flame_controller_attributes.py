@@ -45,7 +45,7 @@ class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
         self.spec_tel_obj = attr.io_ref.spec_tel_obj
 
         try:
-            integration_time_value = self.spec_tel_obj.get_integration_time()
+            integration_time_value = await self.spec_tel_obj.get_integration_time()
 
             await attr.update(integration_time_value)
         except UnexpectedResponseError as e:
@@ -60,7 +60,7 @@ class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
         Updates integration time value on controller
         Calls update method to make sure value was set correct and set read value
         """
-        self.spec_tel_obj.set_integration_time(value)
+        await self.spec_tel_obj.set_integration_time(value)
 
         # Make sure readback value is inline with what was set
         if isinstance(attr, AttrRW):
@@ -101,7 +101,7 @@ class SpectrometerScanIO(AttributeIO[np.ndarray, ScanDataIORef]):
         self.spec_tel_obj = attr.io_ref.spec_tel_obj
 
         try:
-            scan_data = self.spec_tel_obj.get_last_scan()
+            scan_data = await self.spec_tel_obj.get_last_scan()
 
             await attr.update(scan_data)
         except UnexpectedResponseError as e:

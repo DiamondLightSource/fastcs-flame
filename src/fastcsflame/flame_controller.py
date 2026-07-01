@@ -120,7 +120,7 @@ class FlameController(Controller):
 
     async def connect(self):
         await super().connect()
-        self.spec_tel_obj.connect()
+        await self.spec_tel_obj.connect()
 
     @command()
     async def single_scan(self):
@@ -129,7 +129,7 @@ class FlameController(Controller):
         Stores scan data in ScanData PV
         """
         try:
-            new_scan_data = self.spec_tel_obj.scan()
+            new_scan_data = await self.spec_tel_obj.scan()
             await self.scan_data.update(new_scan_data)
         except UnexpectedResponseError as e:
             logger.warning(
