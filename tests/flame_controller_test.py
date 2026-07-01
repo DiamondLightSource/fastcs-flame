@@ -1,4 +1,5 @@
 import asyncio
+import multiprocessing
 from datetime import datetime as dt
 
 import numpy as np
@@ -13,6 +14,7 @@ from fastcsflame.spectrometer_telecommunicator import (
     AlreadyConnectedError,
     UnexpectedResponseError,
 )
+from spectrometer_telecommunicator_test import setup_dummy_spectrometer
 
 
 @pytest.fixture
@@ -332,6 +334,41 @@ async def test_acquire_data_too_fast(tmp_path, loguru_caplog):
     await flame_controller.acquire_data()
 
     assert "Scan is behind schedule" in loguru_caplog.text
+
+
+@pytest.mark.asyncio
+async def test_interrupt_scan():
+    mp_context = multiprocessing.get_context()
+
+    server_process = mp_context.Process(target=setup_dummy_spectrometer, args=[7016])
+    server_process.start()
+
+    await asyncio.sleep(1)
+
+    flame_controller = FlameController(
+        "127.0.0.1", 7016, default_nexus_save_file_path="./data.txt"
+    )
+
+    flame_controller.set_path(["FLAME"])
+    fastcs = FastCS(flame_controller, [])
+
+    asyncio.create_task(fastcs.serve(interactive=False))
+
+    # TODO: Remove magic numbers
+    await asyncio.sleep(3)
+
+    asyncio.create_task(flame_controller.single_scan())
+
+    await asyncio.sleep(1)
+
+    await flame_controller.integration_time.put(8)
+
+    await asyncio.sleep(11)
+
+    assert flame_controller.integration_time.get() == 8
+
+    if flame_controller.spec_tel_obj.socket_obj is not None:
+        flame_controller.spec_tel_obj.socket_obj.close()
 
 
 # TODO: Test exceptions are raised correctly
