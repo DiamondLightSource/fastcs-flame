@@ -1,3 +1,4 @@
+import asyncio
 from socket import socket
 
 from fastcs.logging import logger
@@ -38,7 +39,7 @@ class SpectrometerTelecommunicator:
         self.ip = ip
         self.port = port
 
-    def connect(self):
+    async def connect(self):
         """
         Connects to the spectrometers socket
         raises
@@ -58,9 +59,13 @@ class SpectrometerTelecommunicator:
         if self.connected:
             raise AlreadyConnectedError("Connect method has already been run")
 
+        loop = asyncio.get_event_loop()
         self.socket_obj = socket()
         self.socket_obj.settimeout(5)
-        self.socket_obj.connect((self.ip, self.port))
+        self.socket_obj.setblocking(False)
+
+        # self.socket_obj.connect((self.ip, self.port))
+        await loop.sock_connect(self.socket_obj, (self.ip, self.port))
 
         self.connected = True
 
@@ -68,7 +73,9 @@ class SpectrometerTelecommunicator:
         # I'm not 100% sure what it means yet
         # But the socket needs to be cleared for the next message either way
         # Message can NOT be decoded into ascii (in binary??)
-        connection_message = self.socket_obj.recv(self.recieve_buffer_size)
+        connection_message = await loop.sock_recv(
+            self.socket_obj, self.recieve_buffer_size
+        )
 
         # TODO: Add a case for binary start up message too
         # Maybe send signal to convert it ascii??
@@ -78,7 +85,7 @@ class SpectrometerTelecommunicator:
                 + f"recieved: {connection_message}"
             )
 
-    def _small_query(self, query: str) -> str:
+    async def _small_query(self, query: str) -> str:
         """
         Send a query that expects a one packet response
         query: Query to send to spectrometer (before byte encoding)
@@ -89,6 +96,8 @@ class SpectrometerTelecommunicator:
             TimeoutError
                 (when no response was recieved from the device)
         """
+        loop = asyncio.get_event_loop()
+
         if self.socket_obj is None:
             raise NotConnectedError(
                 "Object is not connected to spectrometer, no socket exists. "
@@ -97,11 +106,11 @@ class SpectrometerTelecommunicator:
 
         self.socket_obj.send(query.encode("ascii"))
 
-        response_raw = self.socket_obj.recv(self.recieve_buffer_size)
+        response_raw = await loop.sock_recv(self.socket_obj, self.recieve_buffer_size)
 
         return self._extract_response(response_raw)
 
-    def _big_query(self, query: str, end_signal: bytes = b"65533") -> str:
+    async def _big_query(self, query: str, end_signal: bytes = b"65533") -> str:
         """
         Send a query that expects more than one packet as a response
         query: Query to send to spectrometer (before byte encoding)
@@ -113,6 +122,8 @@ class SpectrometerTelecommunicator:
             TimeoutError
                 (when no response was recieved from the device)
         """
+        loop = asyncio.get_event_loop()
+
         if self.socket_obj is None:
             raise NotConnectedError(
                 "Object is not connected to spectrometer, no socket exists. "
@@ -126,7 +137,9 @@ class SpectrometerTelecommunicator:
 
         # Keep on recieving information until a response section contains the end signal
         while last_response_raw_section.rfind(end_signal) == -1:
-            last_response_raw_section = self.socket_obj.recv(self.recieve_buffer_size)
+            last_response_raw_section = await loop.sock_recv(
+                self.socket_obj, self.recieve_buffer_size
+            )
             response_raw += last_response_raw_section
 
         return self._extract_response(response_raw)
@@ -168,13 +181,13 @@ class SpectrometerTelecommunicator:
 
         return response_str[:-4].strip()
 
-    def get_version(self) -> int:
+    async def get_version(self) -> int:
         """
         Sends a query to get the version of the spectrometer
         returns version encoded as an integer (e.g. 4.1.0 = 410)
         raises UnexpectedResponseError
         """
-        version_str = self._small_query("v")
+        version_str = await self._small_query("v")
         try:
             version_int = int(version_str)
         except ValueError as e:
@@ -183,20 +196,20 @@ class SpectrometerTelecommunicator:
             ) from e
         return version_int
 
-    def set_integration_time(self, integration_time: int):
+    async def set_integration_time(self, integration_time: int):
         """
         Sends a query to set the integration time value of the spectrometer
         integration_time: Value to set integration time to
         """
-        self._small_query("I" + str(integration_time) + "\n")
+        await self._small_query("I" + str(integration_time) + "\n")
 
-    def get_integration_time(self) -> int:
+    async def get_integration_time(self) -> int:
         """
         Sends a query to get the integration time value of the spectrometer
         returns integration time
         raises UnexpectedResponseError
         """
-        integration_time_str = self._small_query("?I")
+        integration_time_str = await self._small_query("?I")
         try:
             integration_time_int = int(integration_time_str)
         except ValueError as e:
@@ -205,20 +218,20 @@ class SpectrometerTelecommunicator:
             ) from e
         return integration_time_int
 
-    def scan(self) -> list[int]:
+    async def scan(self) -> list[int]:
         """
         Triggers a new scan on the spectrometer
         returns scan data
         """
-        scan_result_str = self._big_query("S")
+        scan_result_str = await self._big_query("S")
         return self._scan_str_to_list(scan_result_str)
 
-    def get_last_scan(self) -> list[int]:
+    async def get_last_scan(self) -> list[int]:
         """
         Sends a query to get data from the last scan the spectrometer took
         returns scan data
         """
-        scan_result_str = self._big_query("Z")
+        scan_result_str = await self._big_query("Z")
         return self._scan_str_to_list(scan_result_str)
 
     @staticmethod
