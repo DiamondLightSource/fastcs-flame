@@ -8,8 +8,6 @@ from fastcs.methods.command import command
 from fastcsflame.flame_controller_attributes import (
     DummyBoolIO,
     DummyBoolIORef,
-    DummyIntIO,
-    DummyIntIORef,
     DummyStrIO,
     DummyStrIORef,
     IntegrationTimeIORef,
@@ -36,17 +34,6 @@ class FlameController(Controller):
 
     integration_time: AttrRW[int, IntegrationTimeIORef]
 
-    # Time to acquire data over
-    # NOT a value from the spectrometer
-    acquisition_period: AttrRW[int, DummyIntIORef]
-
-    # Number of scans to perform in acquisition period
-    # NOT a value from the spectrometer
-    total_scans: AttrRW[int, DummyIntIORef]
-
-    file_path: AttrRW[str, DummyStrIORef]
-    file_name: AttrRW[str, DummyStrIORef]
-    title: AttrRW[str, DummyStrIORef]
     sample_name: AttrRW[str, DummyStrIORef]
     sample_id: AttrRW[str, DummyStrIORef]
     capture: AttrRW[bool, DummyBoolIORef]
@@ -60,13 +47,8 @@ class FlameController(Controller):
         self,
         ip: str,
         port: int,
-        default_acquisition_period: int = 45,
-        default_total_scans: int = 3,
-        default_nexus_save_file_path: str = ".",
-        default_nexus_save_file_name: str = "data",
-        default_title: str = "Experiment Title",
-        default_sample_name: str = "Sample Name",
-        default_sample_id: str = "SampleID",
+        default_file_path: str = ".",
+        default_file_name: str = "data",
     ):
         """
         Creates controller object
@@ -85,7 +67,6 @@ class FlameController(Controller):
             ios=[
                 SpectrometerIntIO(),
                 DummyBoolIO(),
-                DummyIntIO(),
                 DummyStrIO(),
                 SpectrometerScanIO(),
             ]
@@ -97,21 +78,12 @@ class FlameController(Controller):
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
         )
 
-        self.acquisition_period = AttrRW(
-            Int(), io_ref=DummyIntIORef(default_acquisition_period)
-        )
-
-        self.total_scans = AttrRW(Int(), io_ref=DummyIntIORef(default_total_scans))
-
         self.nexus_save_file_path = AttrRW(
-            String(), io_ref=DummyStrIORef(default_nexus_save_file_path)
+            String(), io_ref=DummyStrIORef(default_file_path)
         )
         self.nexus_save_file_name = AttrRW(
-            String(), io_ref=DummyStrIORef(default_nexus_save_file_name)
+            String(), io_ref=DummyStrIORef(default_file_name)
         )
-        self.title = AttrRW(String(), io_ref=DummyStrIORef(default_title))
-        self.sample_name = AttrRW(String(), io_ref=DummyStrIORef(default_sample_name))
-        self.sample_id = AttrRW(String(), io_ref=DummyStrIORef(default_sample_id))
         self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
 
         self.scan_data = AttrR(
