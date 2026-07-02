@@ -112,6 +112,8 @@ class FlameController(Controller):
         try:
             new_scan_data = await self.spec_tel_obj.scan()
             await self.scan_data.update(new_scan_data)
+            if self.capture.get():
+                self.file_builder.add_scan(self.scan_data.get())
         except UnexpectedResponseError as e:
             logger.warning(
                 "Spectrometer gave unexpected response from scan trigger attempt: "
