@@ -1,15 +1,12 @@
 import asyncio
 import multiprocessing
-from datetime import datetime as dt
 
-import numpy as np
 import pytest
 from fastcs.launch import FastCS
 from fastcs.logging import configure_logging, logger
 
-from dummy_hdf5_file_builder import DummyHdf5FileBuilder
 from dummy_spectrometer import DummySpectrometer
-from fastcsflame.flame_controller import SCAN_DATA_LENGTH, FlameController
+from fastcsflame.flame_controller import FlameController
 from fastcsflame.spectrometer_telecommunicator import (
     AlreadyConnectedError,
     UnexpectedResponseError,
@@ -150,115 +147,6 @@ async def test_scan_data_command():
 
 
 @pytest.mark.asyncio
-async def test_acquire_data_timings(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer()
-
-    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
-
-    scan_start = np.datetime64(dt.now())
-
-    await flame_controller.acquire_data()
-
-    scan_end = np.datetime64(dt.now())
-
-    assert dummy_fb.create_h5_file_times_arg is not None
-    assert len(dummy_fb.create_h5_file_times_arg.shape) == 1
-    assert (
-        dummy_fb.create_h5_file_times_arg.shape[0] == flame_controller.total_scans.get()
-    )
-    assert np.datetime64(scan_start) < dummy_fb.create_h5_file_times_arg[0]
-    assert dummy_fb.create_h5_file_times_arg[-1] < np.datetime64(scan_end)
-    scan_period = (
-        dummy_fb.create_h5_file_times_arg[-1] - dummy_fb.create_h5_file_times_arg[0]
-    )
-    assert (
-        flame_controller.acquisition_period.get() - 1
-        < scan_period.item().total_seconds()
-        and scan_period.item().total_seconds()
-        < flame_controller.acquisition_period.get() + 1
-    )
-    assert "Scan is behind schedule" not in loguru_caplog.text
-
-
-@pytest.mark.asyncio
-async def test_acquire_data_timings_after_set(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer()
-
-    await flame_controller.acquisition_period.put(
-        flame_controller.acquisition_period.get() * 2
-    )
-    await flame_controller.total_scans.put(
-        int(flame_controller.total_scans.get() * 2 / 3)
-    )
-
-    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
-
-    scan_start = np.datetime64(dt.now())
-
-    await flame_controller.acquire_data()
-
-    scan_end = np.datetime64(dt.now())
-
-    assert dummy_fb.create_h5_file_times_arg is not None
-    assert len(dummy_fb.create_h5_file_times_arg.shape) == 1
-    assert (
-        dummy_fb.create_h5_file_times_arg.shape[0] == flame_controller.total_scans.get()
-    )
-    assert np.datetime64(scan_start) < dummy_fb.create_h5_file_times_arg[0]
-    assert dummy_fb.create_h5_file_times_arg[-1] < np.datetime64(scan_end)
-    scan_period = (
-        dummy_fb.create_h5_file_times_arg[-1] - dummy_fb.create_h5_file_times_arg[0]
-    )
-    assert (
-        flame_controller.acquisition_period.get() - 1
-        < scan_period.item().total_seconds()
-        and scan_period.item().total_seconds()
-        < flame_controller.acquisition_period.get() + 1
-    )
-    assert "Scan is behind schedule" not in loguru_caplog.text
-
-
-@pytest.mark.asyncio
-async def test_create_file_call(tmp_path):
-    flame_controller, _ = await controller_and_spectrometer()
-
-    dummy_fb = flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
-
-    scan_start = np.datetime64(dt.now())
-
-    await flame_controller.acquire_data()
-
-    scan_end = np.datetime64(dt.now())
-
-    assert (
-        dummy_fb.create_h5_file_destination_arg
-        == flame_controller.nexus_save_file_path.get()
-    )
-    assert (
-        dummy_fb.create_h5_file_filename_arg
-        == flame_controller.nexus_save_file_name.get()
-    )
-    assert dummy_fb.create_h5_file_title_arg == flame_controller.title.get()
-    assert dummy_fb.create_h5_file_sample_name_arg == flame_controller.sample_name.get()
-    assert dummy_fb.create_h5_file_sample_id_arg == flame_controller.sample_id.get()
-
-    assert dummy_fb.create_h5_file_data_arg is not None
-    assert (
-        dummy_fb.create_h5_file_data_arg.shape[0] == flame_controller.total_scans.get()
-    )
-    assert dummy_fb.create_h5_file_data_arg.shape[1] == SCAN_DATA_LENGTH
-
-    assert dummy_fb.create_h5_file_times_arg is not None
-    assert (
-        dummy_fb.create_h5_file_times_arg.shape[0] == flame_controller.total_scans.get()
-    )
-    assert all(
-        scan_start < time and time < scan_end
-        for time in dummy_fb.create_h5_file_times_arg
-    )
-
-
-@pytest.mark.asyncio
 async def test_bad_connection(loguru_caplog):
     try:
         flame_controller, _ = await controller_and_spectrometer(error_connect=True)
@@ -316,24 +204,6 @@ async def test_bad_scan_command(loguru_caplog):
         pass
 
     assert "UnexpectedResponseError" in loguru_caplog.text
-
-
-@pytest.mark.asyncio
-async def test_acquire_data_too_fast(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer()
-
-    # TODO: Remove magic numbers
-    # Numbers just need to be set so that we have more than one scan every 11 seconds
-    # 11 seconds is the average time for a scan
-    # This should also get a constant variable in this file
-    await flame_controller.acquisition_period.put(20)
-    await flame_controller.total_scans.put(5)
-
-    flame_controller.file_builder = DummyHdf5FileBuilder(tmp_path)
-
-    await flame_controller.acquire_data()
-
-    assert "Scan is behind schedule" in loguru_caplog.text
 
 
 @pytest.mark.asyncio

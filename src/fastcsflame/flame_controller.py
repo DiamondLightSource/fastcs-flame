@@ -1,13 +1,9 @@
-import asyncio
-from datetime import datetime, timedelta
-
 import numpy as np
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import Controller
 from fastcs.datatypes import Int, String, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
-from numpy.typing import NDArray
 
 from fastcsflame.flame_controller_attributes import (
     DummyIntIO,
@@ -137,61 +133,3 @@ class FlameController(Controller):
                 + f"\n{e.args[0]}"
                 + "\nScanData PV not updated"
             )
-
-    @command()
-    async def acquire_data(self):
-        """
-        Starts the data acquisition process
-        Conducts [TotalScans] scans over a period of [AcquisitionPeriod] seconds
-        Scans are evenly spaced with one conducted when the command is called
-        and one conducted [AcquisitionPeriod] seconds after the command is called
-        It takes roughly 11 seconds to send scan data so if TotalScans is set too high
-        for the AcquisitionPeriod scans will be conducted behind schedule
-        In this case a warning is logged
-        Data is output to output_data_filepath
-        """
-        start_time = datetime.now()
-
-        acquisition_period = self.acquisition_period.get()
-        total_scans = self.total_scans.get()
-
-        schedule: list[datetime] = [
-            start_time + timedelta(seconds=n * acquisition_period / (total_scans - 1))
-            for n in range(total_scans)
-        ]
-
-        actual_scan_times: list[np.datetime64] = []
-        acquisition_data: list[NDArray] = []
-
-        for scheduled_time in schedule:
-            loop_start_time = datetime.now()
-
-            # wait until scheduled time for scan
-            if loop_start_time < scheduled_time:
-                await asyncio.sleep((scheduled_time - loop_start_time).total_seconds())
-            else:
-                logger.warning(
-                    "Scan is behind schedule\n"
-                    + f"Time: {loop_start_time}\n"
-                    + f"Expected scan start time: {scheduled_time}\n"
-                    + "This is likely because too many scans are requested in the "
-                    + "acquisition period. It takes roughly 11 seconds to send data "
-                    + "from a scan, consider decreasing TotalScans value"
-                )
-
-            scan_start_time = datetime.now()
-            await self.single_scan()
-
-            # Better to make this one list of tuples??
-            actual_scan_times.append(np.datetime64(scan_start_time))
-            acquisition_data.append(self.scan_data.get())
-
-        self.file_builder.create_h5_file(
-            self.nexus_save_file_path.get(),
-            self.nexus_save_file_name.get(),
-            self.title.get(),
-            self.sample_name.get(),
-            self.sample_id.get(),
-            np.array(acquisition_data),
-            np.array(actual_scan_times),
-        )
