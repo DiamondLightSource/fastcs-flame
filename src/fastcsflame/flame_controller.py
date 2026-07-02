@@ -1,11 +1,13 @@
 import numpy as np
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import Controller
-from fastcs.datatypes import Int, String, Waveform
+from fastcs.datatypes import Bool, Int, String, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
 
 from fastcsflame.flame_controller_attributes import (
+    DummyBoolIO,
+    DummyBoolIORef,
     DummyIntIO,
     DummyIntIORef,
     DummyStrIO,
@@ -47,6 +49,7 @@ class FlameController(Controller):
     title: AttrRW[str, DummyStrIORef]
     sample_name: AttrRW[str, DummyStrIORef]
     sample_id: AttrRW[str, DummyStrIORef]
+    capture: AttrRW[bool, DummyBoolIORef]
 
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef]
@@ -81,6 +84,7 @@ class FlameController(Controller):
         super().__init__(
             ios=[
                 SpectrometerIntIO(),
+                DummyBoolIO(),
                 DummyIntIO(),
                 DummyStrIO(),
                 SpectrometerScanIO(),
@@ -108,6 +112,7 @@ class FlameController(Controller):
         self.title = AttrRW(String(), io_ref=DummyStrIORef(default_title))
         self.sample_name = AttrRW(String(), io_ref=DummyStrIORef(default_sample_name))
         self.sample_id = AttrRW(String(), io_ref=DummyStrIORef(default_sample_id))
+        self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
 
         self.scan_data = AttrR(
             Waveform(int, shape=(SCAN_DATA_LENGTH,)),

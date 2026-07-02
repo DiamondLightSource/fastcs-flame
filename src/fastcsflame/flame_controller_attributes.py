@@ -147,6 +147,41 @@ class DummyIntIO(AttributeIO[int, DummyIntIORef]):
             await attr.update(value)
 
 
+@dataclass
+class DummyBoolIORef(AttributeIORef):
+    """
+    Reference for a int attribute on a FastCS controller that
+    is not a property of the device
+    """
+
+    default_value: bool
+
+    def __init__(self, default_value: bool):
+        super().__init__(update_period=ONCE)
+        self.default_value = default_value
+
+
+class DummyBoolIO(AttributeIO[bool, DummyBoolIORef]):
+    """
+    IO for integer attribtues on a FastCS controller that are
+    not properties of the device
+    """
+
+    async def update(self, attr: AttrR[bool, DummyBoolIORef]):
+        """
+        Sets the default value for the attribute
+        SHOULD ONLY BE CALLED ONCE (Ref should habe update_period=ONCE)
+        """
+
+        await attr.update(attr.io_ref.default_value)
+
+    async def send(self, attr: AttrW[bool, DummyBoolIORef], value: bool):
+
+        # update RBV to match written value
+        if isinstance(attr, AttrRW):
+            await attr.update(value)
+
+
 # Could this and DummyIntIORef be 1 generic class??
 # Or would this break fastcs??
 @dataclass
