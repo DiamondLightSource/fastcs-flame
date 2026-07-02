@@ -15,7 +15,7 @@ class Hdf5FileBuilder:
     file: h5py.File | None = None
     scans_added: int = 0
 
-    def __init__(self, wavelengths: list[int]):
+    def __init__(self, wavelengths: NDArray[np.float64]):
         self._wavelengths = np.array(wavelengths)
 
     def create_file(self, file_path: str, file_name: str):
@@ -43,13 +43,11 @@ class Hdf5FileBuilder:
 
         self.scans_added = 0
 
-    def add_scan(self, raw_data: list[int]):
+    def add_scan(self, data: NDArray[np.int64]):
 
         if self.file is None:
             print("File not created")
             return
-
-        data = np.array(raw_data)
 
         dataset = self.file["ENTRY/DATA/Data"]
         if not isinstance(dataset, h5py.Dataset):
