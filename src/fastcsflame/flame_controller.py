@@ -44,8 +44,8 @@ class FlameController(Controller):
     # NOT a value from the spectrometer
     total_scans: AttrRW[int, DummyIntIORef]
 
-    nexus_save_file_path: AttrRW[str, DummyStrIORef]
-    nexus_save_file_name: AttrRW[str, DummyStrIORef]
+    file_path: AttrRW[str, DummyStrIORef]
+    file_name: AttrRW[str, DummyStrIORef]
     title: AttrRW[str, DummyStrIORef]
     sample_name: AttrRW[str, DummyStrIORef]
     sample_id: AttrRW[str, DummyStrIORef]
@@ -62,8 +62,8 @@ class FlameController(Controller):
         port: int,
         default_acquisition_period: int = 45,
         default_total_scans: int = 3,
-        default_nexus_save_file_path: str = "./",
-        default_nexus_save_file_name: str = "data.nxs",
+        default_nexus_save_file_path: str = ".",
+        default_nexus_save_file_name: str = "data",
         default_title: str = "Experiment Title",
         default_sample_name: str = "Sample Name",
         default_sample_id: str = "SampleID",
