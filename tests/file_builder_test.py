@@ -1,22 +1,39 @@
 import h5py
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
 
+BASIC_FILE_DEFINITION: str = ""
+BASIC_FILE_VERSION: str = "0.0.1"
+BASIC_FILE_URL: str = ""
+BASIC_FILE_EXPERIMENT_TYPE: str = ""
+BEAM_PARAMETER_RELIABILITY: str = ""
+DETECTOR_CHANNEL_TYPE: str = ""
+WAVELENGTHS: NDArray = np.array(range(2044))
 
-# TODO: Add some sort of clean up in tests that close this incase of an error
-# Otherwise all tests after will error too
-# Also delete file after tests
+BASIC_FILE_NAME = "data.nxs"
+BASIC_FILE_TITLE = ""
+BASIC_FILE_SAMPLE_NAME = ""
+BASIC_FILE_SAMPLE_ID = ""
+BASIC_FILE_DATA = np.array([1000 for i in range(2044)])
+BASIC_FILE_TIMES = np.array([np.datetime64("2026-06-26T11:20:50")])
+
+
 @pytest.fixture
-def basic_file():
+def basic_file(tmp_path):
     fb = Hdf5FileBuilder()
 
-    data = np.array([1000 for i in range(2044)])
-    times = np.array([np.datetime64("2026-06-26T11:20:50")])
-
-    # Is CI not going to like me trying to make files??
-    file = fb.create_h5_file("./", "data.nxs", "", "", "", data, times)
+    file = fb.create_h5_file(
+        tmp_path,
+        BASIC_FILE_NAME,
+        BASIC_FILE_TITLE,
+        BASIC_FILE_SAMPLE_NAME,
+        BASIC_FILE_SAMPLE_ID,
+        BASIC_FILE_DATA,
+        BASIC_FILE_TIMES,
+    )
     yield file
     file.close()
 
