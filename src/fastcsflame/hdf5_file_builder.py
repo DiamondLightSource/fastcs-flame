@@ -33,9 +33,15 @@ class Hdf5FileBuilder:
             maxshape=(None, len(self._wavelengths)),
         )
 
-        self.scans_added = 0
+        data_group.attrs["axes"] = "Scan x Wavelength"
+        data_group.attrs["signal"] = "Intensity"
 
-        return self.file
+        wavelength_axis = data_group.create_dataset(
+            "WAVELENGTH_AXIS", data=self._wavelengths
+        )
+        wavelength_axis.attrs["long_name"] = "Wavelength"
+
+        self.scans_added = 0
 
     def add_scan(self, raw_data: list[int]):
 
