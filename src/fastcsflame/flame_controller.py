@@ -92,6 +92,7 @@ class FlameController(Controller):
             String(), io_ref=DummyStrIORef(default_file_name)
         )
         self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
+        self.capture.add_on_update_callback(self.on_capture_change)
 
         self.scan_data = AttrR(
             Waveform(int, shape=(SCAN_DATA_LENGTH,)),
@@ -117,3 +118,11 @@ class FlameController(Controller):
                 + f"\n{e.args[0]}"
                 + "\nScanData PV not updated"
             )
+
+    async def on_capture_change(self, capture: bool):
+        if capture:
+            self.file_builder.create_file(
+                self.nexus_save_file_path.get(), self.nexus_save_file_name.get()
+            )
+        else:
+            self.file_builder.close_file()
