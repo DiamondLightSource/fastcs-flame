@@ -1,111 +1,75 @@
 import h5py
 import numpy as np
-import pytest
-from numpy.typing import NDArray
 
 from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
 
-BASIC_FILE_DEFINITION: str = ""
-BASIC_FILE_VERSION: str = "0.0.1"
-BASIC_FILE_URL: str = ""
-BASIC_FILE_EXPERIMENT_TYPE: str = ""
-BEAM_PARAMETER_RELIABILITY: str = ""
-DETECTOR_CHANNEL_TYPE: str = ""
-WAVELENGTHS: NDArray = np.array(range(2044))
 
-BASIC_FILE_NAME = "data.nxs"
-BASIC_FILE_TITLE = ""
-BASIC_FILE_SAMPLE_NAME = ""
-BASIC_FILE_SAMPLE_ID = ""
-BASIC_FILE_DATA = np.array([1000 for i in range(2044)])
-BASIC_FILE_TIMES = np.array([np.datetime64("2026-06-26T11:20:50")])
+def test_creation(tmp_path):
+    wavelengths = np.array(range(2044))
 
+    fb = Hdf5FileBuilder(wavelengths)
+    fb.create_file(tmp_path, "data")
+    data = np.zeros_like(wavelengths)
+    fb.add_scan(data)
+    fb.close_file()
 
-@pytest.fixture
-def basic_file(tmp_path):
-    fb = Hdf5FileBuilder()
-
-    file = fb.create_h5_file(
-        tmp_path,
-        BASIC_FILE_NAME,
-        BASIC_FILE_TITLE,
-        BASIC_FILE_SAMPLE_NAME,
-        BASIC_FILE_SAMPLE_ID,
-        BASIC_FILE_DATA,
-        BASIC_FILE_TIMES,
-    )
-    yield file
-    file.close()
+    # Test the file is created in the correct place
+    file = h5py.File(f"{tmp_path}/data.h5", "r")
+    assert isinstance(file, h5py.File)
 
 
-def test_entry_structure(basic_file):
-    entry_group = basic_file["ENTRY"]
+def test_structure(tmp_path):
+    wavelengths = np.array(range(2044))
+
+    fb = Hdf5FileBuilder(wavelengths)
+    fb.create_file(tmp_path, "data")
+    data = np.zeros_like(wavelengths)
+    fb.add_scan(data)
+    fb.close_file()
+
+    file = h5py.File(f"{tmp_path}/data.h5", "r")
+    assert isinstance(file, h5py.File)
+
+    entry_group = file["ENTRY"]
     assert isinstance(entry_group, h5py.Group)
-
-    title_field = entry_group["title"]
-    assert isinstance(title_field, h5py.Dataset)
-    start_time_field = entry_group["start_time"]
-    assert isinstance(start_time_field, h5py.Dataset)
-    end_time_field = entry_group["end_time"]
-    assert isinstance(end_time_field, h5py.Dataset)
-    experiment_type_field = entry_group["experiment_type"]
-    assert isinstance(experiment_type_field, h5py.Dataset)
-
-
-def test_definition_structure(basic_file):
-    entry_group = basic_file["ENTRY"]
-
-    definition_field = entry_group["definition"]
-    assert isinstance(definition_field, h5py.Dataset)
-    assert "@version" in definition_field.attrs
-    assert "@URL" in definition_field.attrs
-
-
-def test_instrument_structure(basic_file):
-    entry_group = basic_file["ENTRY"]
-
-    instrument_group = entry_group["INSTRUMENT"]
-    assert isinstance(instrument_group, h5py.Group)
-
-    beam_type_group = instrument_group["beam_TYPE"]
-    assert isinstance(beam_type_group, h5py.Group)
-    detector_type_group = instrument_group["detector_TYPE"]
-    assert isinstance(detector_type_group, h5py.Group)
-
-    parameter_reliability_field = beam_type_group["parameter_reliability"]
-    assert isinstance(parameter_reliability_field, h5py.Dataset)
-    detector_channel_type_field = detector_type_group["detector_channel_type"]
-    assert isinstance(detector_channel_type_field, h5py.Dataset)
-
-
-def test_sample_structure(basic_file):
-    entry_group = basic_file["ENTRY"]
-
-    sample_group = entry_group["SAMPLE"]
-    assert isinstance(sample_group, h5py.Group)
-
-    name_field = sample_group["name"]
-    assert isinstance(name_field, h5py.Dataset)
-    sample_id_field = sample_group["sample_id"]
-    assert isinstance(sample_id_field, h5py.Dataset)
-
-
-def test_data_structure(basic_file):
-    entry_group = basic_file["ENTRY"]
 
     data_group = entry_group["DATA"]
     assert isinstance(data_group, h5py.Group)
 
-    assert "axes" in data_group.attrs
-    assert "signal" in data_group.attrs
-
-    dataset = data_group["DATA"]
+    dataset = data_group["Data"]
     assert isinstance(dataset, h5py.Dataset)
-
-    time_axis = data_group["TIME_AXIS"]
-    assert isinstance(time_axis, h5py.Dataset)
-    assert "long_name" in time_axis.attrs
 
     wavelength_axis = data_group["WAVELENGTH_AXIS"]
     assert isinstance(wavelength_axis, h5py.Dataset)
+
+    assert "axes" in data_group.attrs
+    assert "signal" in data_group.attrs
     assert "long_name" in wavelength_axis.attrs
+
+
+def test_values(tmp_path):
+    wavelengths = np.array(range(2044))
+
+    fb = Hdf5FileBuilder(wavelengths)
+    fb.create_file(tmp_path, "data")
+    datas = []
+    iterations = 5
+    for _ in range(iterations):
+        data = np.random.randint(900, high=1100, size=wavelengths.shape)
+        fb.add_scan(data)
+        datas.append(data)
+    fb.close_file()
+
+    # Test the file is created in the correct place
+    file = h5py.File(f"{tmp_path}/data.h5", "r")
+    assert isinstance(file, h5py.File)
+
+    dataset = file["ENTRY/DATA/Data"]
+    assert isinstance(dataset, h5py.Dataset)
+
+    assert np.array_equal(np.array(dataset), np.array(datas))
+
+    wavlength_axis = file["ENTRY/DATA/WAVELENGTH_AXIS"]
+    assert isinstance(wavlength_axis, h5py.Dataset)
+
+    assert np.array_equal(np.array(wavlength_axis), np.array(wavelengths))
