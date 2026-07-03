@@ -5,29 +5,37 @@
 
 # fastcsflame
 
-EPICS driver for the OceanOptics flame mini spectrometer
+EPICS driver for the OceanOptics Flame mini spectrometer
 
-This is where you should write a short paragraph that describes what your module does,
-how it does it, and why people should use it.
+When started, the script connects to a spectrometer at a specific IP and port and interacts with it using the TelNet protocol. An IOC for interacting with this device is started. This allows users to interact with the device using channel access (controller name is FLAME) or through a Phoebus UI (opi files are generated in the opi directory). Users can create a file holding collected data by starting the a capture period (set Capture to 1). This will create a h5 file at the location specified by the FilePath PV with the value of the FileName PV as its name. Every time the Scan command is run scan data from the device will be added to this file. To end the capture period set Capture to 0 again. This will close the file and future scans will not be added.
 
 What            | Where
 :---:           | :---:
-Source          | <https://github.com//fastcsflame>
-Docker          | `docker run ghcr.io//fastcsflame:latest`
-Releases        | <https://github.com//fastcsflame/releases>
+Source          | <https://gitlab.diamond.ac.uk/controls/containers/beamline/fastcs-flame>
 
-This is where you should put some images or code snippets that illustrate
-some relevant examples. If it is a library then you might put some
-introductory code here:
+# PVs of the Flame IOC
+- IntegrationTime
+- LastScanData
+- Scan
+- FilePath
+- FileName
+- Capture
 
-```python
-from fastcsflame import __version__
+Start the IOC:
+`fastcsflame`
+(in future this will have options for the address and port to communicate to the device on) 
 
-print(f"Hello fastcsflame {__version__}")
-```
+Set integration time to 10:
+`caput FLAME:IntegrationTime 10`
 
-Or if it is a commandline tool then you might put some example commands here:
+Get the data from the last scan:
+`caget FLAME:LastScanData`
 
-```
-python -m fastcsflame --version
-```
+Trigger a scan on the Flame:
+`caput FLAME:Scan 1`
+
+Start the capture period (creates the h5 file)
+`caput FLAME:Capture 1`
+
+Stop the capture period (closes the h5 file, allowing users to view it)
+`caput FLAME:Capture 0`
