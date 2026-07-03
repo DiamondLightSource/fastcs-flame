@@ -83,11 +83,11 @@ def replace_controllers_spec_tel_methods(
     return spectrometer
 
 
-async def controller_and_spectrometer(**kwargs):
+async def controller_and_spectrometer(tmp_path, **kwargs):
     configure_logging()
 
     flame_controller = FlameController(
-        "172.23.91.5", 7016, default_nexus_save_file_path="./data.txt"
+        "172.23.91.5", 7016, default_file_path=tmp_path, default_file_name="data"
     )
     spectrometer = replace_controllers_spec_tel_methods(flame_controller, **kwargs)
     flame_controller.set_path(["FLAME"])
@@ -110,12 +110,12 @@ def lists_equal(list1, list2):
 
 
 @pytest.mark.asyncio
-async def test_controller_initialisation():
+async def test_controller_initialisation(tmp_path):
 
     (
         flame_controller,
         spectrometer,
-    ) = await controller_and_spectrometer()
+    ) = await controller_and_spectrometer(tmp_path)
 
     assert flame_controller.spec_tel_obj.connected
     assert flame_controller.integration_time.get() == spectrometer.integration_time
@@ -123,11 +123,11 @@ async def test_controller_initialisation():
 
 
 @pytest.mark.asyncio
-async def test_caput_integration_time():
+async def test_caput_integration_time(tmp_path):
     (
         flame_controller,
         spectrometer,
-    ) = await controller_and_spectrometer()
+    ) = await controller_and_spectrometer(tmp_path)
 
     new_integration_time = spectrometer.integration_time + 1
     await flame_controller.integration_time.put(new_integration_time)
@@ -135,8 +135,8 @@ async def test_caput_integration_time():
 
 
 @pytest.mark.asyncio
-async def test_scan_data_command():
-    flame_controller, spectrometer = await controller_and_spectrometer()
+async def test_scan_data_command(tmp_path):
+    flame_controller, spectrometer = await controller_and_spectrometer(tmp_path)
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
@@ -147,20 +147,10 @@ async def test_scan_data_command():
 
 
 @pytest.mark.asyncio
-async def test_bad_connection(loguru_caplog):
-    try:
-        flame_controller, _ = await controller_and_spectrometer(error_connect=True)
-    except pytest.PytestUnraisableExceptionWarning:
-        pass
-
-    assert "UnexpectedResponseError" in loguru_caplog.text
-
-
-@pytest.mark.asyncio
-async def test_bad_integration_time_get(loguru_caplog):
+async def test_bad_connection(tmp_path, loguru_caplog):
     try:
         flame_controller, _ = await controller_and_spectrometer(
-            error_get_integration_time=True
+            tmp_path, error_connect=True
         )
     except pytest.PytestUnraisableExceptionWarning:
         pass
@@ -169,10 +159,10 @@ async def test_bad_integration_time_get(loguru_caplog):
 
 
 @pytest.mark.asyncio
-async def test_bad_last_scan_data_get(loguru_caplog):
+async def test_bad_integration_time_get(tmp_path, loguru_caplog):
     try:
         flame_controller, _ = await controller_and_spectrometer(
-            error_get_last_scan=True
+            tmp_path, error_get_integration_time=True
         )
     except pytest.PytestUnraisableExceptionWarning:
         pass
@@ -181,8 +171,22 @@ async def test_bad_last_scan_data_get(loguru_caplog):
 
 
 @pytest.mark.asyncio
-async def test_bad_integration_time_set(loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer(error_get_last_scan=True)
+async def test_bad_last_scan_data_get(tmp_path, loguru_caplog):
+    try:
+        flame_controller, _ = await controller_and_spectrometer(
+            tmp_path, error_get_last_scan=True
+        )
+    except pytest.PytestUnraisableExceptionWarning:
+        pass
+
+    assert "UnexpectedResponseError" in loguru_caplog.text
+
+
+@pytest.mark.asyncio
+async def test_bad_integration_time_set(tmp_path, loguru_caplog):
+    flame_controller, _ = await controller_and_spectrometer(
+        tmp_path, error_get_last_scan=True
+    )
 
     try:
         await flame_controller.integration_time.put(
@@ -195,8 +199,10 @@ async def test_bad_integration_time_set(loguru_caplog):
 
 
 @pytest.mark.asyncio
-async def test_bad_scan_command(loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer(error_get_last_scan=True)
+async def test_bad_scan_command(tmp_path, loguru_caplog):
+    flame_controller, _ = await controller_and_spectrometer(
+        tmp_path, error_get_last_scan=True
+    )
 
     try:
         await flame_controller.single_scan()
@@ -207,7 +213,7 @@ async def test_bad_scan_command(loguru_caplog):
 
 
 @pytest.mark.asyncio
-async def test_interrupt_scan():
+async def test_interrupt_scan(tmp_path):
     mp_context = multiprocessing.get_context()
 
     server_process = mp_context.Process(target=setup_dummy_spectrometer, args=[7016])
@@ -216,7 +222,7 @@ async def test_interrupt_scan():
     await asyncio.sleep(1)
 
     flame_controller = FlameController(
-        "127.0.0.1", 7016, default_nexus_save_file_path="./data.txt"
+        "127.0.0.1", 7016, default_file_path=tmp_path, default_file_name="data"
     )
 
     flame_controller.set_path(["FLAME"])
