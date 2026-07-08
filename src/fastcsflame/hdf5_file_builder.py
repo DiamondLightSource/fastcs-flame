@@ -4,6 +4,10 @@ from numpy.typing import NDArray
 
 
 class Hdf5FileBuilder:
+    """
+    Builds h5 files containing data collected from the Flame
+    """
+
     _wavelengths: NDArray[np.float64]
     file: h5py.File | None = None
     scans_added: int = 0
@@ -11,9 +15,26 @@ class Hdf5FileBuilder:
     string_dtype = h5py.string_dtype(encoding="utf-8")
 
     def __init__(self, wavelengths: NDArray[np.float64]):
+        """
+        wavelengths: An array of wavelength values in nanometers
+            Represents wavelengths of intensity data points collected by flame
+            Should be the same length as the scan data collected by flame
+        """
         self._wavelengths = wavelengths
 
     def create_file(self, file_path: str, file_name: str):
+        """
+        Creates and structures an h5 file for Flame data
+        file_path: Where to create the file
+            Both relative and absolute file paths are valid
+            Do not include final /
+        file_name: What to call the file
+            Do not include extension
+        If a h5 file exist at the file_path location with a matching name it will
+        be replaced without warning
+        This method may be called multiple times from this class to create multiple
+        files
+        """
         self.file = h5py.File(f"{file_path}/{file_name}.h5", "w")
 
         entry_group = self.file.create_group("entry")
@@ -22,6 +43,10 @@ class Hdf5FileBuilder:
         self._create_instrument_group(entry_group)
 
     def _create_data_group(self, parent_group: h5py.Group):
+        """
+        Creates and structures the data group of the h5 file
+        parent_group: Group to create the data group under
+        """
         data_group = parent_group.create_group("data")
 
         # Dataset starts empty but will have scan data added to it as scans are taken
@@ -46,6 +71,10 @@ class Hdf5FileBuilder:
         self.scans_added = 0
 
     def _create_instrument_group(self, parent_group: h5py.Group):
+        """
+        Creates and structures the instrument group of the h5 file
+        parent_group: Group to create the instrument group under
+        """
         instrument_group = parent_group.create_group("instrument")
 
         instrument_group.create_dataset(
@@ -55,6 +84,14 @@ class Hdf5FileBuilder:
         instrument_group.create_dataset("manufacturer", data=np.array(["OceanOptics"]))
 
     def add_scan(self, data: NDArray[np.int64]):
+        """
+        Adds scan data to the last created h5 file
+        data: Scan data from the flame
+        If no file has been created or the previously created file was closed an
+        exception will be raised
+        If scan data length does not match wavelength array length an
+        execption will be raised
+        """
 
         if self.file is None:
             print("File not created")
@@ -73,6 +110,11 @@ class Hdf5FileBuilder:
         self.scans_added += 1
 
     def close_file(self):
+        """
+        Closes last created h5 file
+        If no file has been created or the previously created file was closed an
+        exception will be raised
+        """
         if self.file is None:
             print("file not open")
             return
