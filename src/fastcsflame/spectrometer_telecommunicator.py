@@ -86,40 +86,12 @@ class SpectrometerTelecommunicator:
                 + f"recieved: {connection_message}"
             )
 
-    async def _small_query(self, query: str) -> str:
+    async def _send_query(self, query: str, end_signal: bytes = b"\n\r> ") -> bytes:
         """
-        Send a query that expects a one packet response
-        query: Query to send to spectrometer (before byte encoding)
-        returns response body decoded
-        raises
-            NotConnectedError
-                (when connect method hasnt been called before this method)
-            TimeoutError
-                (when no response was recieved from the device)
-        """
-        loop = asyncio.get_event_loop()
-
-        if self.socket_obj is None:
-            raise NotConnectedError(
-                "Object is not connected to spectrometer, no socket exists. "
-                + "Call connect() method first"
-            )
-
-        self.socket_obj.send(query.encode("ascii"))
-
-        async with asyncio.timeout(self.timeout):
-            response_raw = await loop.sock_recv(
-                self.socket_obj, self.recieve_buffer_size
-            )
-
-        return self._extract_response(response_raw)
-
-    async def _big_query(self, query: str, end_signal: bytes = b"65533") -> str:
-        """
-        Send a query that expects more than one packet as a response
+        Send a query that can handle single or multiple packet responses
         query: Query to send to spectrometer (before byte encoding)
         end_signal: Any collection of bytes included in the final packet
-        returns response body decoded
+        returns raw response
                 raises
             NotConnectedError
                 (when connect method hasnt been called before this method)
@@ -147,7 +119,7 @@ class SpectrometerTelecommunicator:
                 )
             response_raw += last_response_raw_section
 
-        return self._extract_response(response_raw)
+        return response_raw
 
     @staticmethod
     def _extract_response(response_raw: bytes) -> str:
@@ -160,11 +132,14 @@ class SpectrometerTelecommunicator:
         # (This assumes we get an acknowledgement)
         # The query is returned back before the acknowledgement
         # The actual response text is after the acknowledgement
+
         if b"\x15" in response_raw:
             logger.warning(f"Negative acknowledgement in response: {response_raw}")
             return response_raw.decode()
         elif b"\x06" in response_raw:
             response_raw_split = response_raw.split(b"\x06")
+        # This is the start of text character
+        # Sometimes messages are sent with this instead of an acknowledgement character
         elif b"\x02" in response_raw:
             response_raw_split = response_raw.split(b"\x02")
         else:
@@ -192,7 +167,7 @@ class SpectrometerTelecommunicator:
         returns version encoded as an integer (e.g. 4.1.0 = 410)
         raises UnexpectedResponseError
         """
-        version_str = await self._small_query("v")
+        version_str = self._extract_response(await self._send_query("v"))
         try:
             version_int = int(version_str)
         except ValueError as e:
@@ -206,7 +181,11 @@ class SpectrometerTelecommunicator:
         Sends a query to set the integration time value of the spectrometer
         integration_time: Value to set integration time to
         """
-        await self._small_query("I" + str(integration_time) + "\n")
+        # Device does not respond properly to all future messages if the trailing \n
+        # is not included (until a \n is sent)
+        self._extract_response(
+            await self._send_query("I" + str(integration_time) + "\n")
+        )
 
     async def get_integration_time(self) -> int:
         """
@@ -214,21 +193,21 @@ class SpectrometerTelecommunicator:
         returns integration time
         raises UnexpectedResponseError
         """
-        integration_time_str = await self._small_query("?I")
+        integration_time_str = self._extract_response(await self._send_query("?I"))
         try:
             integration_time_int = int(integration_time_str)
+            return integration_time_int
         except ValueError as e:
             raise UnexpectedResponseError(
                 f"Expected version number, recieved '{integration_time_str}'"
             ) from e
-        return integration_time_int
 
     async def scan(self) -> list[int]:
         """
         Triggers a new scan on the spectrometer
         returns scan data
         """
-        scan_result_str = await self._big_query("S")
+        scan_result_str = self._extract_response(await self._send_query("S"))
         return self._scan_str_to_list(scan_result_str)
 
     async def get_last_scan(self) -> list[int]:
@@ -236,7 +215,7 @@ class SpectrometerTelecommunicator:
         Sends a query to get data from the last scan the spectrometer took
         returns scan data
         """
-        scan_result_str = await self._big_query("Z")
+        scan_result_str = self._extract_response(await self._send_query("Z"))
         return self._scan_str_to_list(scan_result_str)
 
     @staticmethod
