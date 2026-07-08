@@ -3,6 +3,14 @@ import numpy as np
 from numpy.typing import NDArray
 
 
+class NoOpenFileError(Exception):
+    pass
+
+
+class ScanLengthError(Exception):
+    pass
+
+
 class Hdf5FileBuilder:
     """
     Builds h5 files containing data collected from the Flame
@@ -87,20 +95,35 @@ class Hdf5FileBuilder:
         """
         Adds scan data to the last created h5 file
         data: Scan data from the flame
-        If no file has been created or the previously created file was closed an
-        exception will be raised
-        If scan data length does not match wavelength array length an
-        execption will be raised
+        raises:
+            NoOpenFileError
+                When no file has been created or the previously created file was closed
+            FileNotFoundError
+                When the scan data dataset couldnt be found in the h5 file
+            ScanLengthError
+                When scan data length does not match wavelength array length
         """
 
         if self.file is None:
-            print("File not created")
-            return
+            raise NoOpenFileError(
+                "No file has been created or last created file was closed.\n"
+                "Nowhere to add scan to"
+            )
 
-        dataset = self.file["entry/data/data"]
+        dataset_path = "entry/data/data"
+        dataset = self.file[dataset_path]
         if not isinstance(dataset, h5py.Dataset):
-            print("Couldnt find dataset")
-            return
+            raise FileNotFoundError(
+                f"Could not find dataset in h5 file at: {dataset_path}"
+            )
+
+        if self._wavelengths.shape[0] != data.shape[0]:
+            raise ScanLengthError(
+                "Scan data length does not match wavelength array length.\n"
+                f"Scan data length: {data.shape[0]} \n"
+                f"Wavelength array length: {self._wavelengths.shape[0]} \n"
+                "Could not add data to file"
+            )
 
         # Adds an extra space for the new scan data
         dataset.resize(self.scans_added + 1, axis=0)
@@ -112,12 +135,15 @@ class Hdf5FileBuilder:
     def close_file(self):
         """
         Closes last created h5 file
-        If no file has been created or the previously created file was closed an
-        exception will be raised
+        raises:
+            NoOpenFileError
+                When no file has been created or the previously created file was closed
         """
         if self.file is None:
-            print("file not open")
-            return
+            raise NoOpenFileError(
+                "No file has been created or last created file was closed.\n"
+                "No file to close"
+            )
 
         self.file.close()
         self.file = None
