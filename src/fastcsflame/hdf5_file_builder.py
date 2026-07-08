@@ -17,9 +17,9 @@ class Hdf5FileBuilder:
         self.file = h5py.File(f"{file_path}/{file_name}.h5", "w")
 
         entry_group = self.file.create_group("entry")
-        # instrument = entry_group.create_group("instrument")
 
         self._create_data_group(entry_group)
+        self._create_instrument_group(entry_group)
 
     def _create_data_group(self, parent_group: h5py.Group):
         data_group = parent_group.create_group("data")
@@ -44,6 +44,15 @@ class Hdf5FileBuilder:
         wavelength_axis.attrs["units"] = "nm"
 
         self.scans_added = 0
+
+    def _create_instrument_group(self, parent_group: h5py.Group):
+        instrument_group = parent_group.create_group("instrument")
+
+        instrument_group.create_dataset(
+            "make", data=np.array(["Flame Miniature Spectrometer"])
+        )
+        instrument_group.create_dataset("model", data=np.array(["FLAME-S"]))
+        instrument_group.create_dataset("manufacturer", data=np.array(["OceanOptics"]))
 
     def add_scan(self, data: NDArray[np.int64]):
 
