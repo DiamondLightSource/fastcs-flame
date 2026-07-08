@@ -21,14 +21,6 @@ from fastcsflame.spectrometer_telecommunicator import (
 )
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
-# In practice these numbers (or numbers for each individual pixels wavelength)
-# Should be calculated in calibration
-# This is just the max and min wavelength from the manual
-LOWEST_WAVELENGTH = 190
-HIGHEST_WAVELENGTH = 1100
-# Should be 2048 in theory but 2044 in practice
-SCAN_DATA_LENGTH = 2044
-
 
 class FlameController(Controller):
     """
@@ -52,6 +44,9 @@ class FlameController(Controller):
         port: int,
         default_file_path: str = ".",
         default_file_name: str = "data",
+        lowest_wavelength=190,
+        highest_wavelength=1100,
+        scan_data_length=2044,
     ):
         """
         Creates controller object
@@ -76,14 +71,14 @@ class FlameController(Controller):
 
         self.spec_tel_obj = SpecTel(ip, port)
         self.file_builder = FileBuilder(
-            np.linspace(LOWEST_WAVELENGTH, HIGHEST_WAVELENGTH, SCAN_DATA_LENGTH)
+            np.linspace(lowest_wavelength, highest_wavelength, scan_data_length)
         )
 
         self.integration_time = AttrRW(
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
         )
         self.scan_data = AttrR(
-            Waveform(int, shape=(SCAN_DATA_LENGTH,)),
+            Waveform(int, shape=(scan_data_length,)),
             io_ref=ScanDataIORef(self.spec_tel_obj),
         )
 
