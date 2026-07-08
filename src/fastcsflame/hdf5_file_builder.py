@@ -41,6 +41,7 @@ class Hdf5FileBuilder:
             "wavelength_axis", data=self._wavelengths
         )
         wavelength_axis.attrs["long_name"] = "Wavelength"
+        wavelength_axis.attrs["units"] = "nm"
 
         self.scans_added = 0
 
