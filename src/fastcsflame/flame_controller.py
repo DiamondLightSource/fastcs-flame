@@ -103,7 +103,7 @@ class FlameController(Controller):
     async def single_scan(self):
         """
         Conducts a single scan using the spectrometer
-        Stores scan data in ScanData PV
+        Stores scan data in ScanData PV and h5 file (if capture mode is on)
         """
         try:
             new_scan_data = await self.spec_tel_obj.scan()
@@ -118,6 +118,11 @@ class FlameController(Controller):
             )
 
     async def on_capture_change(self, capture: bool):
+        """
+        Method to run when the value of capture is changed
+        Creates a new file to capture scan data in when set to true
+        Closes file when set to false
+        """
         if capture:
             self.file_builder.create_file(self.file_path.get(), self.file_name.get())
         else:
