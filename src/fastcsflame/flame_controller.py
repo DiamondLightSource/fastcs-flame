@@ -11,10 +11,10 @@ from fastcsflame.flame_controller_attributes import (
     DummyBoolIORef,
     DummyStrIO,
     DummyStrIORef,
+    IntegrationTimeIO,
     IntegrationTimeIORef,
-    ScanDataIORef,
-    SpectrometerIntIO,
     SpectrometerScanIO,
+    SpectrometerScanIORef,
 )
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
@@ -32,7 +32,7 @@ class FlameController(Controller):
 
     integration_time: AttrRW[int, IntegrationTimeIORef]
     # Scan data from spectrometer
-    scan_data: AttrR[np.ndarray, ScanDataIORef]
+    scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
 
     capture: AttrRW[bool, DummyBoolIORef]
     file_path: AttrRW[str, DummyStrIORef]
@@ -62,7 +62,7 @@ class FlameController(Controller):
         """
         super().__init__(
             ios=[
-                SpectrometerIntIO(),
+                IntegrationTimeIO(),
                 DummyBoolIO(),
                 DummyStrIO(),
                 SpectrometerScanIO(),
@@ -79,7 +79,7 @@ class FlameController(Controller):
         )
         self.scan_data = AttrR(
             Waveform(int, shape=(scan_data_length,)),
-            io_ref=ScanDataIORef(self.spec_tel_obj),
+            io_ref=SpectrometerScanIORef(self.spec_tel_obj),
         )
 
         self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))

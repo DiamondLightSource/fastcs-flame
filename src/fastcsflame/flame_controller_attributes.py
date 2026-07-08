@@ -25,7 +25,7 @@ class IntegrationTimeIORef(AttributeIORef):
         self.spec_tel_obj = spec_tel_obj
 
 
-class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
+class IntegrationTimeIO(AttributeIO[int, IntegrationTimeIORef]):
     """
     IO for integration time on a FastCS controller
     """
@@ -68,7 +68,7 @@ class SpectrometerIntIO(AttributeIO[int, IntegrationTimeIORef]):
 
 
 @dataclass
-class ScanDataIORef(AttributeIORef):
+class SpectrometerScanIORef(AttributeIORef):
     """
     Reference for scan attribute on a FastCS controller
     """
@@ -81,7 +81,7 @@ class ScanDataIORef(AttributeIORef):
         self.spec_tel_obj = spec_tel_obj
 
 
-class SpectrometerScanIO(AttributeIO[np.ndarray, ScanDataIORef]):
+class SpectrometerScanIO(AttributeIO[np.ndarray, SpectrometerScanIORef]):
     """
     IO for scan attributes on a FastCS controller
     """
@@ -91,7 +91,7 @@ class SpectrometerScanIO(AttributeIO[np.ndarray, ScanDataIORef]):
     def __init__(self):
         super().__init__()
 
-    async def update(self, attr: AttrR[np.ndarray, ScanDataIORef]):
+    async def update(self, attr: AttrR[np.ndarray, SpectrometerScanIORef]):
         """
         Sets the scan data attribute based on the last scan the spectrometer took
         on controller start up
