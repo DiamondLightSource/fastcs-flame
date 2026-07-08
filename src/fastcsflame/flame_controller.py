@@ -36,17 +36,15 @@ class FlameController(Controller):
     """
 
     spec_tel_obj: SpecTel
+    file_builder: FileBuilder
 
     integration_time: AttrRW[int, IntegrationTimeIORef]
+    # Scan data from spectrometer
+    scan_data: AttrR[np.ndarray, ScanDataIORef]
 
     capture: AttrRW[bool, DummyBoolIORef]
     file_path: AttrRW[str, DummyStrIORef]
     file_name: AttrRW[str, DummyStrIORef]
-
-    # Scan data from spectrometer
-    scan_data: AttrR[np.ndarray, ScanDataIORef]
-
-    file_builder: FileBuilder
 
     def __init__(
         self,
@@ -67,7 +65,6 @@ class FlameController(Controller):
         default_acquisition_period: Default value for acquisition period (seconds)
         default_total_scans: Default value for scans to perform in acquisition period
         """
-        self.spec_tel_obj = SpecTel(ip, port)
         super().__init__(
             ios=[
                 SpectrometerIntIO(),
@@ -77,6 +74,7 @@ class FlameController(Controller):
             ]
         )
 
+        self.spec_tel_obj = SpecTel(ip, port)
         self.file_builder = FileBuilder(
             np.linspace(LOWEST_WAVELENGTH, HIGHEST_WAVELENGTH, SCAN_DATA_LENGTH)
         )
@@ -84,16 +82,15 @@ class FlameController(Controller):
         self.integration_time = AttrRW(
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
         )
-
-        self.file_path = AttrRW(String(), io_ref=DummyStrIORef(default_file_path))
-        self.file_name = AttrRW(String(), io_ref=DummyStrIORef(default_file_name))
-        self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
-        self.capture.add_on_update_callback(self.on_capture_change)
-
         self.scan_data = AttrR(
             Waveform(int, shape=(SCAN_DATA_LENGTH,)),
             io_ref=ScanDataIORef(self.spec_tel_obj),
         )
+
+        self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
+        self.capture.add_on_update_callback(self.on_capture_change)
+        self.file_path = AttrRW(String(), io_ref=DummyStrIORef(default_file_path))
+        self.file_name = AttrRW(String(), io_ref=DummyStrIORef(default_file_name))
 
     async def connect(self):
         await super().connect()
