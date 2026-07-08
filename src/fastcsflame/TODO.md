@@ -11,16 +11,7 @@
 - Interpret metadata from scan messages more, dont just disregard it
 
 ## Hdf5FileBuilder
-
-### Big Things
-- Ask Dom if file format is correct (send example)
-    (Everything in DATA is correct)
-    (What needs to be included in INSTRUMENT)
-- Add exceptions
-- Add documentation
-
-### Small Things
-- Maybe change the name?
+Sorted
 
 ## FlameControllerAttributes
 
