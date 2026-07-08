@@ -23,12 +23,15 @@ class SpectrometerTelecommunicator:
 
     ip: str
     port: int
-    recieve_buffer_size: int = 1024
+    recieve_buffer_size: int
+    timeout: float
+
     socket_obj: socket | None = None
     connected: bool = False
-    timeout: float = 5.0
 
-    def __init__(self, ip: str, port: int):
+    def __init__(
+        self, ip: str, port: int, recieve_buffer_size: int = 1024, timeout: float = 5.0
+    ):
         """
         Creates the communicator object but does NOT connect to the spectrometers socket
         OR validate socket correctness
@@ -36,9 +39,14 @@ class SpectrometerTelecommunicator:
         ip: IP address of the device the spectrometer is connected to
             example: "192.168.0.1"
         port: Port of the device the spectrometer is communicating on
+        recieve_buffer_size: Size of buffer (in bytes) for recieving messages
+        timeout: Time to wait (in seconds) before raising an error when no response
+            is recieved (whilst expecting a response)
         """
         self.ip = ip
         self.port = port
+        self.recieve_buffer_size = recieve_buffer_size
+        self.timeout = timeout
 
     async def connect(self):
         """
