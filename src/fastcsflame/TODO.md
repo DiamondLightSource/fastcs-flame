@@ -8,9 +8,6 @@
     (At the moment this should be handled for us by FastCS)
 
 ### Small Things
-- Could use a general clean up in some areas
-- In `connect` method make a new case for if the device is in binary mode. Maybe change to ascii mode too??
-- `big_query` and `small_query` methods can be combined
 - Interpret metadata from scan messages more, dont just disregard it
 
 ## Hdf5FileBuilder
