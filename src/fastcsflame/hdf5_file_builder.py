@@ -4,27 +4,28 @@ from numpy.typing import NDArray
 
 
 class Hdf5FileBuilder:
-    _wavelengths: NDArray
-
-    string_dtype = h5py.string_dtype(encoding="utf-8")
-    # This seems like a really stupid way to do this but its what they
-    # do in the documentation
-    # Maybe set it in __init__ or create_h5_file when we actually have time data??
-    datetime_dtype = h5py.opaque_dtype(np.array([np.datetime64("2005-02-25")]).dtype)
-
+    _wavelengths: NDArray[np.float64]
     file: h5py.File | None = None
     scans_added: int = 0
 
+    string_dtype = h5py.string_dtype(encoding="utf-8")
+
     def __init__(self, wavelengths: NDArray[np.float64]):
-        self._wavelengths = np.array(wavelengths)
+        self._wavelengths = wavelengths
 
     def create_file(self, file_path: str, file_name: str):
         self.file = h5py.File(f"{file_path}/{file_name}.h5", "w")
 
         entry_group = self.file.create_group("ENTRY")
         # instrument = entry_group.create_group("INSTRUMENT")
-        data_group = entry_group.create_group("DATA")
 
+        self._create_data_group(entry_group)
+
+    def _create_data_group(self, parent_group: h5py.Group):
+        data_group = parent_group.create_group("DATA")
+
+        # Dataset starts empty but will have scan data added to it as scans are taken
+        # maxshape with first argument None allows this
         data_group.create_dataset(
             "Data",
             shape=(0, len(self._wavelengths)),
@@ -54,7 +55,9 @@ class Hdf5FileBuilder:
             print("Couldnt find dataset")
             return
 
+        # Adds an extra space for the new scan data
         dataset.resize(self.scans_added + 1, axis=0)
+        # Places new scan data at the end of the array
         dataset[self.scans_added] = data
 
         self.scans_added += 1
