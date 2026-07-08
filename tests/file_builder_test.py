@@ -1,13 +1,13 @@
 import h5py
 import numpy as np
 
-from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
+from fastcsflame.file_builder import FileBuilder
 
 
 def test_creation(tmp_path):
     wavelengths = np.array(range(2044))
 
-    fb = Hdf5FileBuilder(wavelengths)
+    fb = FileBuilder(wavelengths)
     fb.create_file(tmp_path, "data")
     data = np.zeros_like(wavelengths)
     fb.add_scan(data)
@@ -21,7 +21,7 @@ def test_creation(tmp_path):
 def test_structure(tmp_path):
     wavelengths = np.array(range(2044))
 
-    fb = Hdf5FileBuilder(wavelengths)
+    fb = FileBuilder(wavelengths)
     fb.create_file(tmp_path, "data")
     data = np.zeros_like(wavelengths)
     fb.add_scan(data)
@@ -50,7 +50,7 @@ def test_structure(tmp_path):
 def test_values(tmp_path):
     wavelengths = np.array(range(2044))
 
-    fb = Hdf5FileBuilder(wavelengths)
+    fb = FileBuilder(wavelengths)
     fb.create_file(tmp_path, "data")
     datas = []
     iterations = 5

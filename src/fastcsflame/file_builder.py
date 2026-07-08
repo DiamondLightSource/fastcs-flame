@@ -11,7 +11,7 @@ class ScanLengthError(Exception):
     pass
 
 
-class Hdf5FileBuilder:
+class FileBuilder:
     """
     Builds h5 files containing data collected from the Flame
     """

@@ -3,10 +3,10 @@ from pathlib import Path
 import h5py
 from numpy.typing import NDArray
 
-from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
+from fastcsflame.file_builder import FileBuilder
 
 
-class DummyHdf5FileBuilder(Hdf5FileBuilder):
+class DummyHdf5FileBuilder(FileBuilder):
     # The file WILL actually be created in this location
     # If youre running this in a test use pytests tmp_path fixture
     file_write_location: Path

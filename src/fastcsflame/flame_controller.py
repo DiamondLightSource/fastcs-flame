@@ -5,6 +5,7 @@ from fastcs.datatypes import Bool, Int, String, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
 
+from fastcsflame.file_builder import FileBuilder
 from fastcsflame.flame_controller_attributes import (
     DummyBoolIO,
     DummyBoolIORef,
@@ -15,7 +16,6 @@ from fastcsflame.flame_controller_attributes import (
     SpectrometerIntIO,
     SpectrometerScanIO,
 )
-from fastcsflame.hdf5_file_builder import Hdf5FileBuilder
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
@@ -46,7 +46,7 @@ class FlameController(Controller):
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef]
 
-    file_builder: Hdf5FileBuilder
+    file_builder: FileBuilder
 
     def __init__(
         self,
@@ -77,7 +77,7 @@ class FlameController(Controller):
             ]
         )
 
-        self.file_builder = Hdf5FileBuilder(
+        self.file_builder = FileBuilder(
             np.linspace(LOWEST_WAVELENGTH, HIGHEST_WAVELENGTH, SCAN_DATA_LENGTH)
         )
 
