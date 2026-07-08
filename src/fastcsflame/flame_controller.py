@@ -39,9 +39,9 @@ class FlameController(Controller):
 
     integration_time: AttrRW[int, IntegrationTimeIORef]
 
-    sample_name: AttrRW[str, DummyStrIORef]
-    sample_id: AttrRW[str, DummyStrIORef]
     capture: AttrRW[bool, DummyBoolIORef]
+    file_path: AttrRW[str, DummyStrIORef]
+    file_name: AttrRW[str, DummyStrIORef]
 
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, ScanDataIORef]
@@ -85,12 +85,8 @@ class FlameController(Controller):
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
         )
 
-        self.nexus_save_file_path = AttrRW(
-            String(), io_ref=DummyStrIORef(default_file_path)
-        )
-        self.nexus_save_file_name = AttrRW(
-            String(), io_ref=DummyStrIORef(default_file_name)
-        )
+        self.file_path = AttrRW(String(), io_ref=DummyStrIORef(default_file_path))
+        self.file_name = AttrRW(String(), io_ref=DummyStrIORef(default_file_name))
         self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
         self.capture.add_on_update_callback(self.on_capture_change)
 
@@ -123,8 +119,6 @@ class FlameController(Controller):
 
     async def on_capture_change(self, capture: bool):
         if capture:
-            self.file_builder.create_file(
-                self.nexus_save_file_path.get(), self.nexus_save_file_name.get()
-            )
+            self.file_builder.create_file(self.file_path.get(), self.file_name.get())
         else:
             self.file_builder.close_file()
