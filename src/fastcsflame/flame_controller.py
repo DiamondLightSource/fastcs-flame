@@ -105,7 +105,7 @@ class FlameController(Controller):
         except UnexpectedResponseError as e:
             logger.warning(
                 "Spectrometer gave unexpected response from scan trigger attempt: "
-                + f"\n{e.args[0]}"
+                + f"\n{e.args[0] if len(e.args) != 0 else '[No message]'}"
                 + "\nScanData PV not updated"
             )
 
