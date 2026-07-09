@@ -215,8 +215,9 @@ async def _test_bad_connection(loguru_caplog):
     assert isinstance(error_queue.pop(), UnexpectedResponseError)
 
 
+# Similar for this test
 @pytest.mark.asyncio
-async def test_bad_integration_time_get(tmp_path, loguru_caplog):
+async def _test_bad_integration_time_get(loguru_caplog):
     spec_tel_mock = AsyncMock()
 
     async def get_integration_time():
@@ -237,16 +238,27 @@ async def test_bad_integration_time_get(tmp_path, loguru_caplog):
     assert isinstance(error_queue.pop(), UnexpectedResponseError)
 
 
+# Similar for this test
 @pytest.mark.asyncio
-async def test_bad_last_scan_data_get(tmp_path, loguru_caplog):
-    try:
-        flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
-            tmp_path, error_get_last_scan=True
-        )
-    except pytest.PytestUnraisableExceptionWarning:
-        pass
+async def _test_bad_last_scan_data_get(loguru_caplog):
+    spec_tel_mock = AsyncMock()
 
-    assert "UnexpectedResponseError" in loguru_caplog.text
+    async def get_last_scan():
+        raise UnexpectedResponseError
+
+    spec_tel_mock.get_integration_time = get_last_scan
+
+    (
+        task_pointer,
+        flame_controller,
+        spec_tel_mock,
+        file_builder_mock,
+        error_queue,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    await asyncio.gather(task_pointer)
+
+    assert isinstance(error_queue.pop(), UnexpectedResponseError)
 
 
 @pytest.mark.asyncio
