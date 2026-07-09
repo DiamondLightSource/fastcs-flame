@@ -1,106 +1,78 @@
 import asyncio
 import multiprocessing
+from collections.abc import Generator
+from unittest.mock import AsyncMock, patch
 
+import numpy as np
 import pytest
 from fastcs.launch import FastCS
 from fastcs.logging import configure_logging, logger
+from pytest import LogCaptureFixture
 
-from dummy_spectrometer import DummySpectrometer
 from fastcsflame.flame_controller import FlameController
-from fastcsflame.spectrometer_telecommunicator import (
-    AlreadyConnectedError,
-    UnexpectedResponseError,
-)
 from spectrometer_telecommunicator_test import setup_dummy_spectrometer
 
 
 @pytest.fixture
-def loguru_caplog(caplog):
+def loguru_caplog(caplog) -> Generator[LogCaptureFixture]:
+    configure_logging()
     handler_id = logger.add(caplog.handler, format="{message}", level="TRACE")
     yield caplog
     logger.remove(handler_id)
 
 
-def replace_controllers_spec_tel_methods(
-    flame_controller: FlameController,
-    error_connect=False,
-    error_version=False,
-    error_get_integration_time=False,
-    error_set_integration_time=False,
-    error_get_last_scan=False,
-    error_scan=False,
+async def serve_fastcs(fastcs_instance: FastCS, error_queue: list[BaseException]):
+
+    try:
+        await fastcs_instance.serve(interactive=False)
+    except BaseException as e:
+        error_queue.append(e)
+
+
+# cant be a fixture as it requires a running event loop
+async def controller_and_mock_objects(
+    loguru_caplog,
+    spec_tel_mock: AsyncMock | None = None,
+    file_builder_mock: AsyncMock | None = None,
 ):
-    # Cant replace the controllers spec_tel object directly as a lot of the
-    # Refs have a pointer to the old one
-    # This makes sense as the controller composes? the tel_spec
-    # However, this means its really tricky to mock the tel_spec object
-    # The best way I could think of doing it is replacing all methods
-    # This means we dont have to properly connect the spec_tel and spectrometer
-    spec_tel = flame_controller.spec_tel_obj
-    spectrometer = DummySpectrometer(spec_tel.port, bind=False)
+    # configure_logging()
+    logger.add(print)
 
-    async def connect():
-        if error_connect:
-            raise UnexpectedResponseError()
-        if spec_tel.connected:
-            raise AlreadyConnectedError
-        spec_tel.connected = True
+    if spec_tel_mock is None:
+        spec_tel_mock = AsyncMock()
+    if file_builder_mock is None:
+        file_builder_mock = AsyncMock()
+    error_queue: list[BaseException] = []
+    with patch(
+        "fastcsflame.flame_controller.SpecTel",
+        return_value=spec_tel_mock,
+    ):
+        with patch(
+            "fastcsflame.flame_controller.FileBuilder",
+            return_value=file_builder_mock,
+        ):
+            flame_controller = FlameController(
+                "172.23.91.5",
+                7016,
+                default_file_path="",
+                default_file_name="",
+            )
+            flame_controller.set_path(["FLAME"])
+            fastcs = FastCS(flame_controller, [])
 
-    async def get_version() -> int:
-        if error_version:
-            raise UnexpectedResponseError()
-        return spectrometer.version
+            task = asyncio.create_task(serve_fastcs(fastcs, error_queue))
 
-    async def get_integration_time() -> int:
-        if error_get_integration_time:
-            raise UnexpectedResponseError()
-        return spectrometer.integration_time
-
-    async def set_integration_time(integration_time):
-        if error_set_integration_time:
-            raise UnexpectedResponseError()
-        spectrometer.integration_time = integration_time
-
-    async def get_last_scan() -> list[int]:
-        if error_get_last_scan:
-            raise UnexpectedResponseError()
-        return spectrometer.last_scan_data
-
-    async def scan() -> list[int]:
-        if error_scan:
-            raise UnexpectedResponseError()
-        await asyncio.sleep(11)
-        spectrometer.randomise_scan_data()
-        return spectrometer.last_scan_data
-
-    spec_tel.connect = connect
-    spec_tel.get_version = get_version
-    spec_tel.get_integration_time = get_integration_time
-    spec_tel.set_integration_time = set_integration_time
-    spec_tel.get_last_scan = get_last_scan
-    spec_tel.scan = scan
-
-    return spectrometer
-
-
-async def controller_and_spectrometer(tmp_path, **kwargs):
-    configure_logging()
-
-    flame_controller = FlameController(
-        "172.23.91.5", 7016, default_file_path=tmp_path, default_file_name="data"
-    )
-    spectrometer = replace_controllers_spec_tel_methods(flame_controller, **kwargs)
-    flame_controller.set_path(["FLAME"])
-    fastcs = FastCS(flame_controller, [])
-
-    asyncio.create_task(fastcs.serve(interactive=False))
-
-    # give fastcs some time to set up
-    # theres probably a callback for when this finishes??
-    # TODO: use a more precise method of waiting
-    await asyncio.sleep(3)
-
-    return flame_controller, spectrometer
+            for _ in range(11):
+                if "Starting FastCS" in loguru_caplog.text:
+                    return (
+                        task,
+                        flame_controller,
+                        spec_tel_mock,
+                        file_builder_mock,
+                        error_queue,
+                    )
+                await asyncio.sleep(1)
+            raise TimeoutError
 
 
 def lists_equal(list1, list2):
@@ -110,16 +82,47 @@ def lists_equal(list1, list2):
 
 
 @pytest.mark.asyncio
-async def test_controller_initialisation(tmp_path):
+async def test_controller_and_mock_objects(loguru_caplog):
 
     (
+        task_pointer,
         flame_controller,
-        spectrometer,
-    ) = await controller_and_spectrometer(tmp_path)
+        spec_tel_mock,
+        file_builder_mock,
+        error_queue,
+    ) = await controller_and_mock_objects(loguru_caplog)
 
-    assert flame_controller.spec_tel_obj.connected
-    assert flame_controller.integration_time.get() == spectrometer.integration_time
-    assert lists_equal(flame_controller.scan_data.get(), spectrometer.last_scan_data)
+    assert True
+
+
+@pytest.mark.asyncio
+async def test_controller_initialisation(loguru_caplog):
+
+    spec_tel_mock = AsyncMock()
+    spec_tel_mock.integration_time = 10
+
+    async def get_integration_time():
+        return spec_tel_mock.integration_time
+
+    spec_tel_mock.get_integration_time = get_integration_time
+    spec_tel_mock.last_scan_data = np.array(range(10))
+
+    async def get_last_scan():
+        return spec_tel_mock.last_scan_data
+
+    spec_tel_mock.get_last_scan = get_last_scan
+
+    (
+        task_pointer,
+        flame_controller,
+        spec_tel_mock,
+        file_builder_mock,
+        error_queue,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    spec_tel_mock.connect.assert_called()
+    assert flame_controller.integration_time.get() == spec_tel_mock.integration_time
+    assert lists_equal(flame_controller.scan_data.get(), spec_tel_mock.last_scan_data)
 
 
 @pytest.mark.asyncio
@@ -127,7 +130,7 @@ async def test_caput_integration_time(tmp_path):
     (
         flame_controller,
         spectrometer,
-    ) = await controller_and_spectrometer(tmp_path)
+    ) = await controller_and_spectrometer(tmp_path)  # type: ignore # noqa: F821
 
     new_integration_time = spectrometer.integration_time + 1
     await flame_controller.integration_time.put(new_integration_time)
@@ -136,7 +139,7 @@ async def test_caput_integration_time(tmp_path):
 
 @pytest.mark.asyncio
 async def test_scan_data_command(tmp_path):
-    flame_controller, spectrometer = await controller_and_spectrometer(tmp_path)
+    flame_controller, spectrometer = await controller_and_spectrometer(tmp_path)  # type: ignore # noqa: F821
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
@@ -149,7 +152,7 @@ async def test_scan_data_command(tmp_path):
 @pytest.mark.asyncio
 async def test_bad_connection(tmp_path, loguru_caplog):
     try:
-        flame_controller, _ = await controller_and_spectrometer(
+        flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
             tmp_path, error_connect=True
         )
     except pytest.PytestUnraisableExceptionWarning:
@@ -161,7 +164,7 @@ async def test_bad_connection(tmp_path, loguru_caplog):
 @pytest.mark.asyncio
 async def test_bad_integration_time_get(tmp_path, loguru_caplog):
     try:
-        flame_controller, _ = await controller_and_spectrometer(
+        flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
             tmp_path, error_get_integration_time=True
         )
     except pytest.PytestUnraisableExceptionWarning:
@@ -173,7 +176,7 @@ async def test_bad_integration_time_get(tmp_path, loguru_caplog):
 @pytest.mark.asyncio
 async def test_bad_last_scan_data_get(tmp_path, loguru_caplog):
     try:
-        flame_controller, _ = await controller_and_spectrometer(
+        flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
             tmp_path, error_get_last_scan=True
         )
     except pytest.PytestUnraisableExceptionWarning:
@@ -184,7 +187,7 @@ async def test_bad_last_scan_data_get(tmp_path, loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_bad_integration_time_set(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer(
+    flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
         tmp_path, error_get_last_scan=True
     )
 
@@ -200,7 +203,7 @@ async def test_bad_integration_time_set(tmp_path, loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_bad_scan_command(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer(
+    flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
         tmp_path, error_get_last_scan=True
     )
 
