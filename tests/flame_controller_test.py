@@ -126,15 +126,32 @@ async def test_controller_initialisation(loguru_caplog):
 
 
 @pytest.mark.asyncio
-async def test_caput_integration_time(tmp_path):
-    (
-        flame_controller,
-        spectrometer,
-    ) = await controller_and_spectrometer(tmp_path)  # type: ignore # noqa: F821
+async def test_set_integration_time(loguru_caplog):
 
-    new_integration_time = spectrometer.integration_time + 1
+    spec_tel_mock = AsyncMock()
+    spec_tel_mock.integration_time = 10
+
+    async def get_integration_time():
+        return spec_tel_mock.integration_time
+
+    def set_integration_time(integration_time: int):
+        spec_tel_mock.integration_time = integration_time
+
+    spec_tel_mock.get_integration_time = get_integration_time
+    spec_tel_mock.set_integration_time = set_integration_time
+    spec_tel_mock.last_scan_data = np.array(range(10))
+
+    (
+        task_pointer,
+        flame_controller,
+        spec_tel_mock,
+        file_builder_mock,
+        error_queue,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    new_integration_time = spec_tel_mock.integration_time + 1
     await flame_controller.integration_time.put(new_integration_time)
-    assert spectrometer.integration_time == new_integration_time
+    assert spec_tel_mock.integration_time == new_integration_time
 
 
 @pytest.mark.asyncio
