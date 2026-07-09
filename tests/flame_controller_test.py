@@ -155,15 +155,34 @@ async def test_set_integration_time(loguru_caplog):
 
 
 @pytest.mark.asyncio
-async def test_scan_data_command(tmp_path):
-    flame_controller, spectrometer = await controller_and_spectrometer(tmp_path)  # type: ignore # noqa: F821
+async def test_scan_data_command(loguru_caplog):
+    spec_tel_mock = AsyncMock()
+    spec_tel_mock.last_scan_data = np.array(range(10))
+
+    async def get_last_scan():
+        return spec_tel_mock.last_scan_data
+
+    async def scan():
+        spec_tel_mock.last_scan_data = np.array(range(10)) + 10
+        return spec_tel_mock.last_scan_data
+
+    spec_tel_mock.get_last_scan = get_last_scan
+    spec_tel_mock.scan = scan
+
+    (
+        task_pointer,
+        flame_controller,
+        spec_tel_mock,
+        file_builder_mock,
+        error_queue,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
     new_scan_data = flame_controller.scan_data.get()
 
     assert not lists_equal(old_scan_data, new_scan_data)
-    assert lists_equal(spectrometer.last_scan_data, new_scan_data)
+    assert lists_equal(new_scan_data, spec_tel_mock.last_scan_data)
 
 
 @pytest.mark.asyncio
