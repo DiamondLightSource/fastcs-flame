@@ -262,33 +262,62 @@ async def _test_bad_last_scan_data_get(loguru_caplog):
 
 
 @pytest.mark.asyncio
-async def test_bad_integration_time_set(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
-        tmp_path, error_get_last_scan=True
-    )
+async def test_bad_integration_time_set(loguru_caplog):
+    spec_tel_mock = AsyncMock()
 
-    try:
-        await flame_controller.integration_time.put(
-            flame_controller.integration_time.get() + 1
-        )
-    except pytest.PytestUnraisableExceptionWarning:
-        pass
+    spec_tel_mock.integration_time = 10
+
+    async def get_integration_time():
+        return spec_tel_mock.integration_time
+
+    def set_integration_time(integration_time: int):
+        raise UnexpectedResponseError
+
+    spec_tel_mock.get_integration_time = get_integration_time
+    spec_tel_mock.set_integration_time = set_integration_time
+
+    (
+        task_pointer,
+        flame_controller,
+        spec_tel_mock,
+        file_builder_mock,
+        error_queue,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    await flame_controller.integration_time.put(10)
 
     assert "UnexpectedResponseError" in loguru_caplog.text
 
 
 @pytest.mark.asyncio
-async def test_bad_scan_command(tmp_path, loguru_caplog):
-    flame_controller, _ = await controller_and_spectrometer(  # type: ignore # noqa: F821
-        tmp_path, error_get_last_scan=True
+async def test_bad_scan_command(loguru_caplog):
+    spec_tel_mock = AsyncMock()
+
+    spec_tel_mock.last_scan_data = list(range(10))
+
+    async def get_scan_data():
+        return spec_tel_mock.last_scan_data
+
+    def scan():
+        raise UnexpectedResponseError
+
+    spec_tel_mock.get_scan_data = get_scan_data
+    spec_tel_mock.scan = scan
+
+    (
+        task_pointer,
+        flame_controller,
+        spec_tel_mock,
+        file_builder_mock,
+        error_queue,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    await flame_controller.single_scan()
+
+    assert (
+        "Spectrometer gave unexpected response from scan trigger attempt: "
+        in loguru_caplog.text
     )
-
-    try:
-        await flame_controller.single_scan()
-    except pytest.PytestUnraisableExceptionWarning:
-        pass
-
-    assert "UnexpectedResponseError" in loguru_caplog.text
 
 
 @pytest.mark.asyncio
