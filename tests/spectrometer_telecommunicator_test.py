@@ -25,10 +25,10 @@ def custom_setup_dummy_spectrometer(
     dummy_spectrometer = DummySpectrometer(port)
     if bad_version_response:
 
-        def new_get_version() -> bytes:
-            return dummy_spectrometer.wrap_response("v", "", delimeter=b"\x15")
+        def new_get_version() -> str:
+            return ""
 
-        dummy_spectrometer.get_version = new_get_version
+        dummy_spectrometer.handle_get_version_request = new_get_version
     asyncio.run(dummy_spectrometer.start(startup_message=startup_message))
 
 
@@ -164,7 +164,7 @@ async def test_set_integration_time():
     new_integration_time = old_integration_time + 1
     await spec_tel_object.set_integration_time(new_integration_time)
 
-    assert new_integration_time == spec_tel_object.get_integration_time()
+    assert new_integration_time == await spec_tel_object.get_integration_time()
 
     if spec_tel_object.socket_obj is not None:
         spec_tel_object.socket_obj.close()
