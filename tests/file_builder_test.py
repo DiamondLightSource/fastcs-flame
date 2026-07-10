@@ -143,14 +143,14 @@ def test_make_multiple_files(tmp_path):
     fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
 
     fb.create_file(str(tmp_path) + BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
-    fb.add_scan(BASIC_DATA_ARRAY)
+    fb.add_scan(BASIC_DATA_ARRAY[0])
     fb.close_file()
 
     file_1 = h5py.File(f"{str(tmp_path) + BASIC_DUMMY_PATH}/{BASIC_DUMMY_NAME}.h5", "r")
     assert isinstance(file_1, h5py.File)
 
     fb.create_file(str(tmp_path) + EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME)
-    fb.add_scan(BASIC_DATA_ARRAY)
+    fb.add_scan(BASIC_DATA_ARRAY[0])
     fb.close_file()
 
     file_1 = h5py.File(f"{str(tmp_path) + BASIC_DUMMY_PATH}/{BASIC_DUMMY_NAME}.h5", "r")
@@ -178,7 +178,7 @@ def test_no_open_file_error_add_scan():
     fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
 
     with pytest.raises(NoOpenFileError):
-        fb.add_scan(BASIC_DATA_ARRAY)
+        fb.add_scan(BASIC_DATA_ARRAY[0])
 
 
 # Test removed becuase its too hard to remove a dataset from an h5 file
@@ -194,7 +194,7 @@ def _test_no_data_path_error_add_scan(tmp_path):
         fb.file["entry/data/data"] = None
 
     with pytest.raises(FileNotFoundError):
-        fb.add_scan(BASIC_DATA_ARRAY)
+        fb.add_scan(BASIC_DATA_ARRAY[0])
 
 
 def test_scan_length_error_add_scan(tmp_path):
