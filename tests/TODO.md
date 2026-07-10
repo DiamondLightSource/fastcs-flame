@@ -1,8 +1,7 @@
 # To Do List
 
 ## DummySpectrometer
-BIG clean
-DONT like the _hangle_request method
+Sorted
 
 ## DummyHdf5FileBuilder
 It does the job
