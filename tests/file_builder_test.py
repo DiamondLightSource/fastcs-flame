@@ -21,7 +21,7 @@ BASIC_DUMMY_PATH = "/data"
 BASIC_DUMMY_NAME = "data"
 EXTENDED_DUMMY_PATH = "/dls/science/more"
 ALTERNATE_DUMMY_NAME = "dt"
-BASIC_WAVLENGTH_ARRAY = np.array(range(2044), dtype=np.float64)
+BASIC_WAVELENGTH_ARRAY = np.array(range(2044), dtype=np.float64)
 ALTERNATE_WAVELENGTH_ARRAY = np.array(range(1000), dtype=np.float64)
 BASIC_DATA_ARRAY = np.array([range(2044)])
 ALTERNATE_DATA_ARRAY = np.array([range(1000)])
@@ -35,14 +35,14 @@ EMPTY_DATA_ARRAY = np.array([])
         FileParameters(
             BASIC_DUMMY_PATH,
             BASIC_DUMMY_NAME,
-            BASIC_WAVLENGTH_ARRAY,
+            BASIC_WAVELENGTH_ARRAY,
             BASIC_DATA_ARRAY,
         ),
         # Test extended file path and different name
         FileParameters(
             EXTENDED_DUMMY_PATH,
             ALTERNATE_DUMMY_NAME,
-            BASIC_WAVLENGTH_ARRAY,
+            BASIC_WAVELENGTH_ARRAY,
             BASIC_DATA_ARRAY,
         ),
         # Test different wavelengths
@@ -56,14 +56,14 @@ EMPTY_DATA_ARRAY = np.array([])
         FileParameters(
             BASIC_DUMMY_PATH,
             BASIC_DUMMY_NAME,
-            BASIC_WAVLENGTH_ARRAY,
+            BASIC_WAVELENGTH_ARRAY,
             LARGER_DATA_ARRAY,
         ),
         # Test no rows of data
         FileParameters(
             BASIC_DUMMY_PATH,
             BASIC_DUMMY_NAME,
-            BASIC_WAVLENGTH_ARRAY,
+            BASIC_WAVELENGTH_ARRAY,
             EMPTY_DATA_ARRAY,
         ),
     ]
@@ -128,3 +128,29 @@ def test_values(h5file):
     assert isinstance(wavlength_axis, h5py.Dataset)
 
     assert np.array_equal(np.array(wavlength_axis), params.wavelength_array)
+
+
+def test_make_multiple_files(tmp_path):
+    Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
+    Path(str(tmp_path) + EXTENDED_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
+
+    fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
+
+    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+    fb.add_scan(BASIC_DATA_ARRAY)
+    fb.close_file()
+
+    file_1 = h5py.File(f"{str(tmp_path) + BASIC_DUMMY_PATH}/{BASIC_DUMMY_NAME}.h5", "r")
+    assert isinstance(file_1, h5py.File)
+
+    fb.create_file(EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME)
+    fb.add_scan(BASIC_DATA_ARRAY)
+    fb.close_file()
+
+    file_1 = h5py.File(f"{str(tmp_path) + BASIC_DUMMY_PATH}/{BASIC_DUMMY_NAME}.h5", "r")
+    assert isinstance(file_1, h5py.File)
+
+    file_2 = h5py.File(
+        f"{str(tmp_path) + EXTENDED_DUMMY_PATH}/{ALTERNATE_DUMMY_NAME}.h5", "r"
+    )
+    assert isinstance(file_2, h5py.File)
