@@ -124,6 +124,12 @@ async def test_controller_and_mock_objects(loguru_caplog):
     assert True
 
 
+INITIAL_DUMMY_INTEGRATION_TIME = 10
+SET_DUMMY_INTEGRATION_TIME = 8
+INITIAL_DUMMY_SCAN_DATA = np.array(range(10))
+SET_DUMMY_SCAN_DATA = np.array(range(10)) + 10
+
+
 @pytest.mark.asyncio
 async def test_controller_initialisation(loguru_caplog):
     """
@@ -131,13 +137,13 @@ async def test_controller_initialisation(loguru_caplog):
     """
 
     spec_tel_mock = AsyncMock()
-    spec_tel_mock.integration_time = 10
+    spec_tel_mock.integration_time = INITIAL_DUMMY_INTEGRATION_TIME
 
     async def get_integration_time():
         return spec_tel_mock.integration_time
 
     spec_tel_mock.get_integration_time = get_integration_time
-    spec_tel_mock.last_scan_data = np.array(range(10))
+    spec_tel_mock.last_scan_data = INITIAL_DUMMY_SCAN_DATA
 
     async def get_last_scan():
         return spec_tel_mock.last_scan_data
@@ -164,7 +170,7 @@ async def test_controller_initialisation(loguru_caplog):
 async def test_set_integration_time(loguru_caplog):
 
     spec_tel_mock = AsyncMock()
-    spec_tel_mock.integration_time = 10
+    spec_tel_mock.integration_time = INITIAL_DUMMY_INTEGRATION_TIME
 
     async def get_integration_time():
         return spec_tel_mock.integration_time
@@ -174,7 +180,6 @@ async def test_set_integration_time(loguru_caplog):
 
     spec_tel_mock.get_integration_time = get_integration_time
     spec_tel_mock.set_integration_time = set_integration_time
-    spec_tel_mock.last_scan_data = np.array(range(10))
 
     (
         _,
@@ -184,22 +189,21 @@ async def test_set_integration_time(loguru_caplog):
         _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
-    new_integration_time = spec_tel_mock.integration_time + 1
-    await flame_controller.integration_time.put(new_integration_time)
+    await flame_controller.integration_time.put(SET_DUMMY_INTEGRATION_TIME)
     # Make sure new integration time matches spec tel object
-    assert spec_tel_mock.integration_time == new_integration_time
+    assert spec_tel_mock.integration_time == SET_DUMMY_INTEGRATION_TIME
 
 
 @pytest.mark.asyncio
 async def test_scan_data_command(loguru_caplog):
     spec_tel_mock = AsyncMock()
-    spec_tel_mock.last_scan_data = np.array(range(10))
+    spec_tel_mock.last_scan_data = INITIAL_DUMMY_SCAN_DATA
 
     async def get_last_scan():
         return spec_tel_mock.last_scan_data
 
     async def scan():
-        spec_tel_mock.last_scan_data = np.array(range(10)) + 10
+        spec_tel_mock.last_scan_data = SET_DUMMY_SCAN_DATA
         return spec_tel_mock.last_scan_data
 
     spec_tel_mock.get_last_scan = get_last_scan
@@ -299,7 +303,7 @@ async def _test_bad_last_scan_data_get(loguru_caplog):
 async def test_bad_integration_time_set(loguru_caplog):
     spec_tel_mock = AsyncMock()
 
-    spec_tel_mock.integration_time = 10
+    spec_tel_mock.integration_time = INITIAL_DUMMY_INTEGRATION_TIME
 
     async def get_integration_time():
         return spec_tel_mock.integration_time
@@ -318,7 +322,7 @@ async def test_bad_integration_time_set(loguru_caplog):
         _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
-    await flame_controller.integration_time.put(10)
+    await flame_controller.integration_time.put(SET_DUMMY_INTEGRATION_TIME)
 
     assert "UnexpectedResponseError" in loguru_caplog.text
 
@@ -327,7 +331,7 @@ async def test_bad_integration_time_set(loguru_caplog):
 async def test_bad_scan_command(loguru_caplog):
     spec_tel_mock = AsyncMock()
 
-    spec_tel_mock.last_scan_data = list(range(10))
+    spec_tel_mock.last_scan_data = INITIAL_DUMMY_SCAN_DATA
 
     async def get_scan_data():
         return spec_tel_mock.last_scan_data
@@ -394,7 +398,7 @@ async def test_interrupt_scan(tmp_path):
     await asyncio.sleep(1)
 
     # BEFORE Scan is finishes try to change integration time
-    await flame_controller.integration_time.put(8)
+    await flame_controller.integration_time.put(SET_DUMMY_INTEGRATION_TIME)
 
     # Wait until everything is guaranteed to be done
     await asyncio.sleep(11)
