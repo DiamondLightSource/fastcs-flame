@@ -30,7 +30,7 @@ class SpectrometerTelecommunicator:
     connected: bool = False
 
     def __init__(
-        self, ip: str, port: int, recieve_buffer_size: int = 1024, timeout: float = 5.0
+        self, ip: str, port: int, recieve_buffer_size: int = 1024, timeout: float = 15.0
     ):
         """
         Creates the communicator object but does NOT connect to the spectrometers socket
