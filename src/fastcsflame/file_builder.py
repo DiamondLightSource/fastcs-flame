@@ -2,6 +2,8 @@ import h5py
 import numpy as np
 from numpy.typing import NDArray
 
+STRING_DTYPE = h5py.string_dtype(encoding="utf-8")
+
 
 class NoOpenFileError(Exception):
     pass
@@ -19,8 +21,6 @@ class FileBuilder:
     _wavelengths: NDArray[np.float64]
     file: h5py.File | None = None
     scans_added: int = 0
-
-    string_dtype = h5py.string_dtype(encoding="utf-8")
 
     def __init__(self, wavelengths: NDArray[np.float64]):
         """
@@ -86,10 +86,15 @@ class FileBuilder:
         instrument_group = parent_group.create_group("instrument")
 
         instrument_group.create_dataset(
-            "make", data=np.array(["Flame Miniature Spectrometer"])
+            "make",
+            data=np.array(["Flame Miniature Spectrometer"], dtype=STRING_DTYPE),
         )
-        instrument_group.create_dataset("model", data=np.array(["FLAME-S"]))
-        instrument_group.create_dataset("manufacturer", data=np.array(["OceanOptics"]))
+        instrument_group.create_dataset(
+            "model", data=np.array(["FLAME-S"], dtype=STRING_DTYPE)
+        )
+        instrument_group.create_dataset(
+            "manufacturer", data=np.array(["OceanOptics"], dtype=STRING_DTYPE)
+        )
 
     def add_scan(self, data: NDArray[np.int64]):
         """

@@ -5,11 +5,11 @@ from fastcsflame.file_builder import FileBuilder
 
 
 def test_creation(tmp_path):
-    wavelengths = np.array(range(2044))
+    wavelengths = np.array(range(2044), dtype=np.float64)
 
     fb = FileBuilder(wavelengths)
     fb.create_file(tmp_path, "data")
-    data = np.zeros_like(wavelengths)
+    data = np.zeros(wavelengths.shape, dtype=np.int64)
     fb.add_scan(data)
     fb.close_file()
 
