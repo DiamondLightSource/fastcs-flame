@@ -1,5 +1,6 @@
 import asyncio
 import multiprocessing
+from contextlib import asynccontextmanager
 from socket import socket
 
 import pytest
@@ -32,8 +33,7 @@ def custom_setup_dummy_spectrometer(
     asyncio.run(dummy_spectrometer.start(startup_message=startup_message))
 
 
-# TODO: Turn this into some sort of fixture
-# Does this work for async functions??
+@asynccontextmanager
 async def spec_tel_coroutine():
     """
     Function that returns an unconnected spectrometer telecommunicator object
@@ -47,16 +47,18 @@ async def spec_tel_coroutine():
 
     await asyncio.sleep(1)
 
-    return SpecTel("127.0.0.1", 7016)
+    spec_tel_object = SpecTel("127.0.0.1", 7016)
+    try:
+        yield spec_tel_object
+    finally:
+        if spec_tel_object.socket_obj is not None:
+            spec_tel_object.socket_obj.close()
 
 
 @pytest.mark.asyncio
 async def test_connection():
-    spec_tel_object = await spec_tel_coroutine()
-    await spec_tel_object.connect()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+    async with spec_tel_coroutine() as spec_tel_object:
+        await spec_tel_object.connect()
 
 
 @pytest.mark.asyncio
@@ -94,31 +96,25 @@ async def test_bad_initial_connection_message():
 
 @pytest.mark.asyncio
 async def test_device_already_connected():
-    spec_tel_object = await spec_tel_coroutine()
+    async with spec_tel_coroutine() as spec_tel_object:
+        socket_obj = socket()
+        socket_obj.connect(("127.0.0.1", 7016))
+        socket_obj.setblocking(False)
 
-    socket_obj = socket()
-    socket_obj.connect(("127.0.0.1", 7016))
-    socket_obj.setblocking(False)
+        loop = asyncio.get_event_loop()
+        await loop.sock_recv(socket_obj, 1024)
 
-    loop = asyncio.get_event_loop()
-    await loop.sock_recv(socket_obj, 1024)
-
-    with pytest.raises(TimeoutError):
-        await spec_tel_object.connect()
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
-    socket_obj.close()
+        with pytest.raises(TimeoutError):
+            await spec_tel_object.connect()
+        socket_obj.close()
 
 
 @pytest.mark.asyncio
 async def test_get_version():
-    spec_tel_object = await spec_tel_coroutine()
-    await spec_tel_object.connect()
+    async with spec_tel_coroutine() as spec_tel_object:
+        await spec_tel_object.connect()
 
-    await spec_tel_object.get_version()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+        await spec_tel_object.get_version()
 
 
 @pytest.mark.asyncio
@@ -146,51 +142,39 @@ async def test_invalid_response():
 
 @pytest.mark.asyncio
 async def test_get_integration_time():
-    spec_tel_object = await spec_tel_coroutine()
-    await spec_tel_object.connect()
+    async with spec_tel_coroutine() as spec_tel_object:
+        await spec_tel_object.connect()
 
-    await spec_tel_object.get_integration_time()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+        await spec_tel_object.get_integration_time()
 
 
 @pytest.mark.asyncio
 async def test_set_integration_time():
-    spec_tel_object = await spec_tel_coroutine()
-    await spec_tel_object.connect()
+    async with spec_tel_coroutine() as spec_tel_object:
+        await spec_tel_object.connect()
 
-    old_integration_time = await spec_tel_object.get_integration_time()
-    new_integration_time = old_integration_time + 1
-    await spec_tel_object.set_integration_time(new_integration_time)
+        old_integration_time = await spec_tel_object.get_integration_time()
+        new_integration_time = old_integration_time + 1
+        await spec_tel_object.set_integration_time(new_integration_time)
 
-    assert new_integration_time == await spec_tel_object.get_integration_time()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+        assert new_integration_time == await spec_tel_object.get_integration_time()
 
 
 @pytest.mark.asyncio
 async def test_get_last_scan():
-    spec_tel_object = await spec_tel_coroutine()
-    await spec_tel_object.connect()
+    async with spec_tel_coroutine() as spec_tel_object:
+        await spec_tel_object.connect()
 
-    await spec_tel_object.get_last_scan()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+        await spec_tel_object.get_last_scan()
 
 
 @pytest.mark.asyncio
 async def test_scan():
-    spec_tel_object = await spec_tel_coroutine()
-    await spec_tel_object.connect()
+    async with spec_tel_coroutine() as spec_tel_object:
+        await spec_tel_object.connect()
 
-    last_last_value = (await spec_tel_object.get_last_scan())[-1]
+        last_last_value = (await spec_tel_object.get_last_scan())[-1]
 
-    new_last_value = (await spec_tel_object.scan())[-1]
+        new_last_value = (await spec_tel_object.scan())[-1]
 
-    assert last_last_value != new_last_value
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+        assert last_last_value != new_last_value
