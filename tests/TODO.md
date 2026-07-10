@@ -8,7 +8,7 @@ It does the job
 Just in quite an ugly way
 
 ## spectrometer_telecommunicator_test
-Make spec_tel_coroutine into a fixture
+Sorted
 
 ## file_builder_test
 More tests:
