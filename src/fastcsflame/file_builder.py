@@ -9,6 +9,10 @@ class NoOpenFileError(Exception):
     pass
 
 
+class OpenFileError(Exception):
+    pass
+
+
 class ScanLengthError(Exception):
     pass
 
@@ -30,7 +34,7 @@ class FileBuilder:
         """
         self._wavelengths = wavelengths
 
-    def create_file(self, file_path: str, file_name: str):
+    def create_file(self, file_path: str, file_name: str, auto_close=False):
         """
         Creates and structures an h5 file for Flame data
         file_path: Where to create the file
@@ -38,11 +42,24 @@ class FileBuilder:
             Do not include final /
         file_name: What to call the file
             Do not include extension
+        auto_close: If this object already has an open file it closes it and does not
+            raise an exception
+        raises:
+            OpenFileError
+                When this object already has an open file and auto_close is false
         If a h5 file exist at the file_path location with a matching name it will
         be replaced without warning
         This method may be called multiple times from this class to create multiple
         files
         """
+        if self.file is not None:
+            if auto_close:
+                self.file.close()
+            else:
+                raise OpenFileError(
+                    "Close previously created file before creating a new file"
+                )
+
         self.file = h5py.File(f"{file_path}/{file_name}.h5", "w")
 
         entry_group = self.file.create_group("entry")
