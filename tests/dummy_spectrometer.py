@@ -44,10 +44,9 @@ class DummySpectrometer:
         # Recieve and process messages until the connection is closed
         while True:
             raw_last_message = await loop.sock_recv(connection, 1024)
-            last_message = raw_last_message.decode("ascii")
-            if last_message == "":
+            if raw_last_message.decode("ascii") == "":
                 return
-            response = self._handle_request(last_message)
+            response = self._handle_request(raw_last_message)
             self._respond_in_chunks(connection, response)
 
     def _respond_in_chunks(self, connection: socket, response: bytes):
@@ -68,58 +67,60 @@ class DummySpectrometer:
             response = response[self.chunk_size :]
             connection.send(next_chunk)
 
-    def _handle_request(self, request: str) -> bytes:
+    def _handle_request(self, raw_request: bytes) -> bytes:
         """
         Processes sent requests
         Returns response (in bytes)
         request: The request message recieved decoded as a string
         """
-        # Would in be neater to have request in bytes and decode it here??
-        # So then its bytes in bytes out??
+        request = raw_request.decode("ascii")
+        response_body: str = ""
+        response_delimeter: bytes = b"\x06"
 
         match request[0]:
             case "v":
-                return self.get_version()
+                response_body = self.handle_get_version_request()
             case "I":
-                return self.set_integration_time(request)
+                response_body = self.handle_set_integration_time_request(request)
             case "Z":
-                return self.get_last_scan()
+                response_body = self.handle_get_last_scan_request()
             case "S":
                 # There should be a wait in here somewhere
                 # TODO: make async??
-                return self.scan()
+                response_body = self.handle_scan_request()
+                response_delimeter = b"\02"
             case "?":
                 match request[1]:
                     case "I":
-                        return self.get_integration_time()
-        return b""
+                        response_body = self.handle_get_integration_time_request()
+        if response_body == "":
+            response_delimeter = b"\x15"
 
-    # This double mapping is BAD
-    # (handle request mapping and including message in repsonse)
-    # TODO: Figure out a way to get rid of it
-    def get_version(self) -> bytes:
-        return self.wrap_response("v", str(self.version) + " ")
+        return self.wrap_response(request, response_body, delimeter=response_delimeter)
 
-    def get_integration_time(self) -> bytes:
-        return self.wrap_response("?I", str(self.integration_time) + " ")
+    def handle_get_version_request(self) -> str:
+        return str(self.version) + " "
 
-    def set_integration_time(self, request: str) -> bytes:
+    def handle_get_integration_time_request(self) -> str:
+        return str(self.integration_time) + " "
+
+    def handle_set_integration_time_request(self, request: str) -> str:
         if "\n" not in request:
             # TODO: make sure this is correct
-            return b"\x15"
+            return ""
         new_integration_time = int(request[1:].split("\n")[0].rstrip())
         self.integration_time = new_integration_time
-        return self.wrap_response("I" + str(self.integration_time) + "\n\r", " ")
+        return " "
 
-    def get_last_scan(self) -> bytes:
-        return self.wrap_response("Z", self._scan_string())
+    def handle_get_last_scan_request(self) -> str:
+        return self._scan_string()
 
-    def scan(self) -> bytes:
+    def handle_scan_request(self) -> str:
         """
         Conducts a new scan and returns the result of it
         """
         self.randomise_scan_data()
-        return self.wrap_response("S", self._scan_string(), delimeter=b"\02")
+        return self._scan_string()
 
     def _scan_string(self) -> str:
         """
@@ -152,8 +153,8 @@ class DummySpectrometer:
             self.last_scan_data.append(random.randint(900, 1200))
 
         # Ensure that the last value is not the same as before
-        # This means we can test a new scan has actually happened by comparing
-        # the last value
+        # This guarantees the two scans will not be the same
+        # And also allows us to be lazy and only check the last value for scan changes
         # Such a low probability of happening anyway
         if self.last_scan_data[-1] == last_last_value:
             self.last_scan_data[-1] += 1
