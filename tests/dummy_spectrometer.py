@@ -46,7 +46,7 @@ class DummySpectrometer:
             raw_last_message = await loop.sock_recv(connection, 1024)
             if raw_last_message.decode("ascii") == "":
                 return
-            response = self._handle_request(raw_last_message)
+            response = await self._handle_request(raw_last_message)
             self._respond_in_chunks(connection, response)
 
     def _respond_in_chunks(self, connection: socket, response: bytes):
@@ -54,7 +54,6 @@ class DummySpectrometer:
         Sends messages in evenly sized chunks
         Simulates how real spectrometer sends data
         """
-        # TODO: Could add a delay to make messages more realistic
 
         # Keep taking chunks until the message is all sent
         while True:
@@ -67,7 +66,7 @@ class DummySpectrometer:
             response = response[self.chunk_size :]
             connection.send(next_chunk)
 
-    def _handle_request(self, raw_request: bytes) -> bytes:
+    async def _handle_request(self, raw_request: bytes) -> bytes:
         """
         Processes sent requests
         Returns response (in bytes)
@@ -83,11 +82,9 @@ class DummySpectrometer:
             case "I":
                 response_body = self.handle_set_integration_time_request(request)
             case "Z":
-                response_body = self.handle_get_last_scan_request()
+                response_body = await self.handle_get_last_scan_request()
             case "S":
-                # There should be a wait in here somewhere
-                # TODO: make async??
-                response_body = self.handle_scan_request()
+                response_body = await self.handle_scan_request()
                 response_delimeter = b"\02"
             case "?":
                 match request[1]:
@@ -112,13 +109,15 @@ class DummySpectrometer:
         self.integration_time = new_integration_time
         return " "
 
-    def handle_get_last_scan_request(self) -> str:
+    async def handle_get_last_scan_request(self) -> str:
+        await asyncio.sleep(8)
         return self._scan_string()
 
-    def handle_scan_request(self) -> str:
+    async def handle_scan_request(self) -> str:
         """
         Conducts a new scan and returns the result of it
         """
+        await asyncio.sleep(11)
         self.randomise_scan_data()
         return self._scan_string()
 
