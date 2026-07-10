@@ -30,16 +30,16 @@ def test_structure(tmp_path):
     file = h5py.File(f"{tmp_path}/data.h5", "r")
     assert isinstance(file, h5py.File)
 
-    entry_group = file["ENTRY"]
+    entry_group = file["entry"]
     assert isinstance(entry_group, h5py.Group)
 
-    data_group = entry_group["DATA"]
+    data_group = entry_group["data"]
     assert isinstance(data_group, h5py.Group)
 
-    dataset = data_group["Data"]
+    dataset = data_group["data"]
     assert isinstance(dataset, h5py.Dataset)
 
-    wavelength_axis = data_group["WAVELENGTH_AXIS"]
+    wavelength_axis = data_group["wavelength_axis"]
     assert isinstance(wavelength_axis, h5py.Dataset)
 
     assert "axes" in data_group.attrs
