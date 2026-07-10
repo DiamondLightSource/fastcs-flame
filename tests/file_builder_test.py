@@ -64,12 +64,12 @@ def test_values(tmp_path):
     file = h5py.File(f"{tmp_path}/data.h5", "r")
     assert isinstance(file, h5py.File)
 
-    dataset = file["ENTRY/DATA/Data"]
+    dataset = file["entry/data/data"]
     assert isinstance(dataset, h5py.Dataset)
 
     assert np.array_equal(np.array(dataset), np.array(datas))
 
-    wavlength_axis = file["ENTRY/DATA/WAVELENGTH_AXIS"]
+    wavlength_axis = file["entry/data/wavelength_axis"]
     assert isinstance(wavlength_axis, h5py.Dataset)
 
     assert np.array_equal(np.array(wavlength_axis), np.array(wavelengths))
