@@ -353,8 +353,3 @@ async def test_interrupt_scan(tmp_path):
 
     if flame_controller.spec_tel_obj.socket_obj is not None:
         flame_controller.spec_tel_obj.socket_obj.close()
-
-
-# TODO: Test exceptions are raised correctly
-# This is quite tricky as FastCS handles and logs them
-# Will need to check logs instead??
