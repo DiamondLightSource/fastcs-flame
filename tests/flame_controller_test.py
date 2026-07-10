@@ -16,6 +16,9 @@ from spectrometer_telecommunicator_test import setup_dummy_spectrometer
 
 @pytest.fixture
 def loguru_caplog(caplog) -> Generator[LogCaptureFixture]:
+    """
+    Suggested FastCS fixture for capturing log output of a controller
+    """
     configure_logging()
     handler_id = logger.add(caplog.handler, format="{message}", level="TRACE")
     yield caplog
@@ -23,6 +26,12 @@ def loguru_caplog(caplog) -> Generator[LogCaptureFixture]:
 
 
 async def serve_fastcs(fastcs_instance: FastCS, error_queue: list[BaseException]):
+    """
+    Serves the given fastcs instance capturing the first error raised
+    fastcs_instance: fastcs instance to run
+    error_queue: Where to add the errors too
+        More of a pointer really as only the first error raised is added
+    """
 
     try:
         await fastcs_instance.serve(interactive=False)
@@ -33,14 +42,30 @@ async def serve_fastcs(fastcs_instance: FastCS, error_queue: list[BaseException]
             await controller.disconnect()
 
 
-# cant be a fixture as it requires a running event loop
 async def controller_and_mock_objects(
     loguru_caplog,
     spec_tel_mock: AsyncMock | None = None,
     file_builder_mock: AsyncMock | None = None,
-):
-    # configure_logging()
-    logger.add(print)
+    timeout: int = 11,
+) -> tuple[asyncio.Task, FlameController, AsyncMock, AsyncMock, list[BaseException]]:
+    """
+    Creates a flame controller and starts FastCS with mock objects
+    loguru_caplog: Log fixture from test
+    spec_tel_mock: The object to replace the controllers spec_tel object with
+        On None a blank mock object will be used
+    file_builder_mock: The object to replace the controllers file_builder
+        object with. On None a black mock object will be used
+    timeout: Time to wait after attempting to start FastCS until raising
+        a timeout exception (unless launch is successful)
+    returns a tuple of:
+        The task running the FastCS serve method
+        The created controller object
+        The spec_tel_mock object
+        The file_builder mock object
+        The queue of errors raised by FastCS
+    Waits to return until it is confirmed FastCS has started
+    Cant be a fixture as it requires a running event loop
+    """
 
     if spec_tel_mock is None:
         spec_tel_mock = AsyncMock()
@@ -66,7 +91,7 @@ async def controller_and_mock_objects(
 
             task = asyncio.create_task(serve_fastcs(fastcs, error_queue))
 
-            for _ in range(11):
+            for _ in range(timeout):
                 if "Starting FastCS" in loguru_caplog.text:
                     return (
                         task,
@@ -80,6 +105,9 @@ async def controller_and_mock_objects(
 
 
 def lists_equal(list1, list2):
+    """
+    Checks if two lists are equal
+    """
     if len(list1) != len(list2):
         return False
     return all(list1[i] == list2[i] for i in range(len(list1)))
@@ -87,20 +115,20 @@ def lists_equal(list1, list2):
 
 @pytest.mark.asyncio
 async def test_controller_and_mock_objects(loguru_caplog):
+    """
+    Test controller_and_mock_objects method is working
+    """
 
-    (
-        task_pointer,
-        flame_controller,
-        spec_tel_mock,
-        file_builder_mock,
-        error_queue,
-    ) = await controller_and_mock_objects(loguru_caplog)
+    await controller_and_mock_objects(loguru_caplog)
 
     assert True
 
 
 @pytest.mark.asyncio
 async def test_controller_initialisation(loguru_caplog):
+    """
+    Tests controller startup is run correctly
+    """
 
     spec_tel_mock = AsyncMock()
     spec_tel_mock.integration_time = 10
@@ -117,15 +145,18 @@ async def test_controller_initialisation(loguru_caplog):
     spec_tel_mock.get_last_scan = get_last_scan
 
     (
-        task_pointer,
+        _,
         flame_controller,
         spec_tel_mock,
-        file_builder_mock,
-        error_queue,
+        _,
+        _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
+    # Make sure connect method is called
     spec_tel_mock.connect.assert_called()
+    # Make sure initial integration time matches spec tel object
     assert flame_controller.integration_time.get() == spec_tel_mock.integration_time
+    # Make sure initial scan data matches spec tel object
     assert lists_equal(flame_controller.scan_data.get(), spec_tel_mock.last_scan_data)
 
 
@@ -146,15 +177,16 @@ async def test_set_integration_time(loguru_caplog):
     spec_tel_mock.last_scan_data = np.array(range(10))
 
     (
-        task_pointer,
+        _,
         flame_controller,
         spec_tel_mock,
-        file_builder_mock,
-        error_queue,
+        _,
+        _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
     new_integration_time = spec_tel_mock.integration_time + 1
     await flame_controller.integration_time.put(new_integration_time)
+    # Make sure new integration time matches spec tel object
     assert spec_tel_mock.integration_time == new_integration_time
 
 
@@ -174,18 +206,20 @@ async def test_scan_data_command(loguru_caplog):
     spec_tel_mock.scan = scan
 
     (
-        task_pointer,
+        _,
         flame_controller,
         spec_tel_mock,
-        file_builder_mock,
-        error_queue,
+        _,
+        _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
     new_scan_data = flame_controller.scan_data.get()
 
+    # Make sure scan data has changed
     assert not lists_equal(old_scan_data, new_scan_data)
+    # Make sure new scan data matches spec tel object
     assert lists_equal(new_scan_data, spec_tel_mock.last_scan_data)
 
 
@@ -203,9 +237,9 @@ async def _test_bad_connection(loguru_caplog):
 
     (
         task_pointer,
-        flame_controller,
+        _,
         spec_tel_mock,
-        file_builder_mock,
+        _,
         error_queue,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
@@ -227,9 +261,9 @@ async def _test_bad_integration_time_get(loguru_caplog):
 
     (
         task_pointer,
-        flame_controller,
+        _,
         spec_tel_mock,
-        file_builder_mock,
+        _,
         error_queue,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
@@ -250,9 +284,9 @@ async def _test_bad_last_scan_data_get(loguru_caplog):
 
     (
         task_pointer,
-        flame_controller,
+        _,
         spec_tel_mock,
-        file_builder_mock,
+        _,
         error_queue,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
@@ -277,11 +311,11 @@ async def test_bad_integration_time_set(loguru_caplog):
     spec_tel_mock.set_integration_time = set_integration_time
 
     (
-        task_pointer,
+        _,
         flame_controller,
         spec_tel_mock,
-        file_builder_mock,
-        error_queue,
+        _,
+        _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
     await flame_controller.integration_time.put(10)
@@ -305,11 +339,11 @@ async def test_bad_scan_command(loguru_caplog):
     spec_tel_mock.scan = scan
 
     (
-        task_pointer,
+        _,
         flame_controller,
         spec_tel_mock,
-        file_builder_mock,
-        error_queue,
+        _,
+        _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
     await flame_controller.single_scan()
@@ -322,13 +356,24 @@ async def test_bad_scan_command(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_interrupt_scan(tmp_path):
+    """
+    Tests the scenario where a scan is triggered and, before it returns, the integration
+    time is changed
+
+    In theory this could cause the scan method to recieved the integration time response
+    and vice versa. However, FastCS should make sure the integration time message is not
+    sent until the scan data is returned
+    This tests ensures this behaviour remains
+    """
     mp_context = multiprocessing.get_context()
 
+    # Creates a dummy spectrometer instance in anther context
     server_process = mp_context.Process(target=setup_dummy_spectrometer, args=[7016])
     server_process.start()
 
     await asyncio.sleep(1)
 
+    # Creates controller to talk to the dummy spectrometer
     flame_controller = FlameController(
         "127.0.0.1", 7016, default_file_path=tmp_path, default_file_name="data"
     )
@@ -339,14 +384,19 @@ async def test_interrupt_scan(tmp_path):
     asyncio.create_task(fastcs.serve(interactive=False))
 
     # TODO: Remove magic numbers
+    # Wait for fastcs to start
     await asyncio.sleep(3)
 
+    # Send out scan
     asyncio.create_task(flame_controller.single_scan())
 
+    # Scan take roughly 11 seconds
     await asyncio.sleep(1)
 
+    # BEFORE Scan is finishes try to change integration time
     await flame_controller.integration_time.put(8)
 
+    # Wait until everything is guaranteed to be done
     await asyncio.sleep(11)
 
     assert flame_controller.integration_time.get() == 8
