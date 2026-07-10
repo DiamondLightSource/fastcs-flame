@@ -3,10 +3,16 @@ from pathlib import Path
 
 import h5py
 import numpy as np
+import pytest
 from numpy.typing import NDArray
 from pytest import fixture
 
-from fastcsflame.file_builder import FileBuilder
+from fastcsflame.file_builder import (
+    FileBuilder,
+    NoOpenFileError,
+    OpenFileError,
+    ScanLengthError,
+)
 
 
 @dataclass
@@ -154,3 +160,56 @@ def test_make_multiple_files(tmp_path):
         f"{str(tmp_path) + EXTENDED_DUMMY_PATH}/{ALTERNATE_DUMMY_NAME}.h5", "r"
     )
     assert isinstance(file_2, h5py.File)
+
+
+def test_open_file_error(tmp_path):
+    Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
+    Path(str(tmp_path) + EXTENDED_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
+
+    fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
+
+    fb.create_file(str(tmp_path) + BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+
+    with pytest.raises(OpenFileError):
+        fb.create_file(str(tmp_path) + EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME)
+
+
+def test_no_open_file_error_add_scan():
+    fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
+
+    with pytest.raises(NoOpenFileError):
+        fb.add_scan(BASIC_DATA_ARRAY)
+
+
+# Test removed becuase its too hard to remove a dataset from an h5 file
+# This means the FileNotFoundError is very unlikely to come up
+def _test_no_data_path_error_add_scan(tmp_path):
+    Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
+
+    fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
+
+    fb.create_file(str(tmp_path) + BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+
+    if fb.file is not None:
+        fb.file["entry/data/data"] = None
+
+    with pytest.raises(FileNotFoundError):
+        fb.add_scan(BASIC_DATA_ARRAY)
+
+
+def test_scan_length_error_add_scan(tmp_path):
+    Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
+
+    fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
+
+    fb.create_file(str(tmp_path) + BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+
+    with pytest.raises(ScanLengthError):
+        fb.add_scan(ALTERNATE_DATA_ARRAY)
+
+
+def test_no_open_file_error_close_file():
+    fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
+
+    with pytest.raises(NoOpenFileError):
+        fb.close_file()
