@@ -3,10 +3,6 @@
 ## DummySpectrometer
 Sorted
 
-## DummyHdf5FileBuilder
-It does the job
-Just in quite an ugly way
-
 ## spectrometer_telecommunicator_test
 Sorted
 
