@@ -142,14 +142,14 @@ def test_make_multiple_files(tmp_path):
 
     fb = FileBuilder(BASIC_WAVELENGTH_ARRAY)
 
-    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+    fb.create_file(str(tmp_path) + BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
     fb.add_scan(BASIC_DATA_ARRAY)
     fb.close_file()
 
     file_1 = h5py.File(f"{str(tmp_path) + BASIC_DUMMY_PATH}/{BASIC_DUMMY_NAME}.h5", "r")
     assert isinstance(file_1, h5py.File)
 
-    fb.create_file(EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME)
+    fb.create_file(str(tmp_path) + EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME)
     fb.add_scan(BASIC_DATA_ARRAY)
     fb.close_file()
 
