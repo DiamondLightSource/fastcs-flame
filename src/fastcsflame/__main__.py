@@ -20,12 +20,26 @@ def main(args: Sequence[str] | None = None) -> None:
     """Argument parser for the CLI."""
     parser = ArgumentParser()
     parser.add_argument(
+        "ip",
+        type=str,
+        required=True,
+        help="IP Address of the terminal server (or other device) "
+        "the flame spectrometer is connect to",
+    )
+    parser.add_argument(
+        "port",
+        type=int,
+        required=True,
+        help="The port of the terminal server (or other device) "
+        "the flame spectrometer is connected to",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
         version=__version__,
     )
-    parser.parse_args(args)
+    arguments_object = parser.parse_args(args)
 
     configure_logging()
 
@@ -35,8 +49,8 @@ def main(args: Sequence[str] | None = None) -> None:
     epics_ca = EpicsCATransport(gui=gui_options)
 
     flame_controller = FlameController(
-        "172.23.91.5",
-        7016,
+        arguments_object.ip,
+        arguments_object.port,
         default_file_path="/dls/science/b21",
         default_file_name="data",
     )
