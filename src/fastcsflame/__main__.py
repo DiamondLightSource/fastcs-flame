@@ -44,7 +44,7 @@ def main(args: Sequence[str] | None = None) -> None:
     configure_logging()
 
     gui_options = EpicsGUIOptions(
-        output_dir=Path("./opi"), title="Flame Spectrometer Controller"
+        output_dir=Path("epics/opi"), title="Flame Spectrometer Controller"
     )
     epics_ca = EpicsCATransport(gui=gui_options)
 
