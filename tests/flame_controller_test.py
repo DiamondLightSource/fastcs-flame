@@ -83,7 +83,7 @@ async def controller_and_mock_objects(
             flame_controller = FlameController(
                 "172.23.91.5",
                 7016,
-                default_file_path="",
+                mount_path="",
                 default_file_name="",
             )
             flame_controller.set_path(["FLAME"])
@@ -431,7 +431,7 @@ async def test_interrupt_scan(tmp_path):
 
     # Creates controller to talk to the dummy spectrometer
     flame_controller = FlameController(
-        "127.0.0.1", 7016, default_file_path=tmp_path, default_file_name="data"
+        "127.0.0.1", 7016, mount_path=tmp_path, default_file_name="data"
     )
 
     flame_controller.set_path(["FLAME"])

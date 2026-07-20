@@ -34,6 +34,12 @@ def main(args: Sequence[str] | None = None) -> None:
         "the flame spectrometer is connected to",
     )
     parser.add_argument(
+        "mount-path",
+        type=str,
+        required=True,
+        help="The path in the container to the mounted filesystem for saving data",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
@@ -51,7 +57,7 @@ def main(args: Sequence[str] | None = None) -> None:
     flame_controller = FlameController(
         arguments_object.ip,
         arguments_object.port,
-        default_file_path="/dls/science/b21",
+        mount_path="/dls/science/b21",
         default_file_name="data",
     )
     flame_controller.set_path(["FLAME"])
