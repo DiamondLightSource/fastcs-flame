@@ -22,21 +22,18 @@ def main(args: Sequence[str] | None = None) -> None:
     parser.add_argument(
         "ip",
         type=str,
-        required=True,
         help="IP Address of the terminal server (or other device) "
         "the flame spectrometer is connect to",
     )
     parser.add_argument(
         "port",
         type=int,
-        required=True,
         help="The port of the terminal server (or other device) "
         "the flame spectrometer is connected to",
     )
     parser.add_argument(
         "mount-path",
         type=str,
-        required=True,
         help="The path in the container to the mounted filesystem for saving data",
     )
     parser.add_argument(
