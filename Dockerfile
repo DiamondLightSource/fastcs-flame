@@ -61,6 +61,11 @@ COPY --from=build /python /python
 COPY --from=build /app/.venv /app/.venv
 ENV PATH=/app/.venv/bin:$PATH
 
+# Make directory to run inside and generate bob files
+RUN mkdir -p /epics/opi
+
+WORKDIR /epics/opi
+
 # change this entrypoint if it is not the same as the repo
 ENTRYPOINT ["fastcsflame"]
 CMD ["--version"]
