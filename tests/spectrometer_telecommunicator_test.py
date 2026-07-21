@@ -51,8 +51,25 @@ async def spec_tel_coroutine():
     try:
         yield spec_tel_object
     finally:
-        if spec_tel_object.socket_obj is not None:
-            spec_tel_object.socket_obj.close()
+        await close_non_blocking_socket(spec_tel_object.socket_obj)
+
+
+async def close_non_blocking_socket(socket_obj: socket | None):
+    """
+    Makes sure non blocking sockets close properly
+
+    Improperly closed sockets can lead to future tests failing as the port they tried
+    to bind to is already in use (by the previous, finished test)
+    """
+    if socket_obj is None:
+        return
+    socket_obj.close()
+    # This method is quite crude but it seems to have a high success rate
+    # Ideally you would run recv from the socket until a b'' is recieved
+    # This would also require a timeout incase nothing is ever recieved
+    # And im not sure what you would even do in this case when you already
+    # tried to close it??
+    await asyncio.sleep(0.5)
 
 
 @pytest.mark.asyncio
@@ -66,11 +83,13 @@ async def test_bad_socket():
 
     spec_tel_object = SpecTel("127.0.0.1", 7016)
 
-    with pytest.raises(ConnectionRefusedError):
-        await spec_tel_object.connect()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+    try:
+        # Can raise either of these exceptions??
+        # Doesnt seem to act deterministically
+        with pytest.raises((ConnectionRefusedError, ConnectionResetError)):
+            await spec_tel_object.connect()
+    finally:
+        await close_non_blocking_socket(spec_tel_object.socket_obj)
 
 
 @pytest.mark.asyncio
@@ -88,25 +107,28 @@ async def test_bad_initial_connection_message():
     await asyncio.sleep(1)
 
     spec_tel_object = SpecTel("127.0.0.1", 7016)
-    with pytest.raises(UnexpectedResponseError):
-        await spec_tel_object.connect()
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+    try:
+        with pytest.raises(UnexpectedResponseError):
+            await spec_tel_object.connect()
+    finally:
+        await close_non_blocking_socket(spec_tel_object.socket_obj)
 
 
 @pytest.mark.asyncio
 async def test_device_already_connected():
     async with spec_tel_coroutine() as spec_tel_object:
         socket_obj = socket()
-        socket_obj.connect(("127.0.0.1", 7016))
-        socket_obj.setblocking(False)
+        try:
+            socket_obj.connect(("127.0.0.1", 7016))
+            socket_obj.setblocking(False)
 
-        loop = asyncio.get_event_loop()
-        await loop.sock_recv(socket_obj, 1024)
+            loop = asyncio.get_event_loop()
+            await loop.sock_recv(socket_obj, 1024)
 
-        with pytest.raises(TimeoutError):
-            await spec_tel_object.connect()
-        socket_obj.close()
+            with pytest.raises(TimeoutError):
+                await spec_tel_object.connect()
+        finally:
+            await close_non_blocking_socket(socket_obj)
 
 
 @pytest.mark.asyncio
@@ -131,13 +153,13 @@ async def test_invalid_response():
     await asyncio.sleep(1)
 
     spec_tel_object = SpecTel("127.0.0.1", 7016)
-    await spec_tel_object.connect()
+    try:
+        await spec_tel_object.connect()
 
-    with pytest.raises(UnexpectedResponseError):
-        await spec_tel_object.get_version()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+        with pytest.raises(UnexpectedResponseError):
+            await spec_tel_object.get_version()
+    finally:
+        await close_non_blocking_socket(spec_tel_object.socket_obj)
 
 
 @pytest.mark.asyncio
