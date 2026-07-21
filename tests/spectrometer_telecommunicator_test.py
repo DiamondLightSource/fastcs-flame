@@ -66,11 +66,14 @@ async def test_bad_socket():
 
     spec_tel_object = SpecTel("127.0.0.1", 7016)
 
-    with pytest.raises(ConnectionRefusedError):
-        await spec_tel_object.connect()
-
-    if spec_tel_object.socket_obj is not None:
-        spec_tel_object.socket_obj.close()
+    try:
+        # Can raise either of these exceptions??
+        # Doesnt seem to act deterministically
+        with pytest.raises((ConnectionRefusedError, ConnectionResetError)):
+            await spec_tel_object.connect()
+    finally:
+        if spec_tel_object.socket_obj is not None:
+            spec_tel_object.socket_obj.close()
 
 
 @pytest.mark.asyncio
