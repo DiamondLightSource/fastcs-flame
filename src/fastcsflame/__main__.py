@@ -32,6 +32,12 @@ def main(args: Sequence[str] | None = None) -> None:
         "the flame spectrometer is connected to",
     )
     parser.add_argument(
+        "--pvprefix",
+        default="BL21B-EA-FLAME-01",
+        type=str,
+        help="The prefix for referencing PVs once the IOC has been launched",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
@@ -53,7 +59,7 @@ def main(args: Sequence[str] | None = None) -> None:
         default_file_path="dls/b21/data",
         default_file_name="data",
     )
-    flame_controller.set_path(["FLAME"])
+    flame_controller.set_path([arguments_object.pvprefix])
 
     fastcs = FastCS(flame_controller, [epics_ca])
 
