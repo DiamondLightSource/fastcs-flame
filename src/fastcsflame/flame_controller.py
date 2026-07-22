@@ -42,7 +42,8 @@ class FlameController(Controller):
         self,
         ip: str,
         port: int,
-        mount_path: str,
+        mount_path: str = "/",
+        default_file_path: str = "dls/b21/data",
         default_file_name: str = "data",
         lowest_wavelength=190,
         highest_wavelength=1100,
@@ -85,7 +86,7 @@ class FlameController(Controller):
 
         self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
         self.capture.add_on_update_callback(self.on_capture_change)
-        self.file_path = AttrRW(String(), io_ref=DummyStrIORef("."))
+        self.file_path = AttrRW(String(), io_ref=DummyStrIORef(default_file_path))
         self.file_name = AttrRW(String(), io_ref=DummyStrIORef(default_file_name))
 
     async def connect(self):

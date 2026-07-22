@@ -54,7 +54,8 @@ def main(args: Sequence[str] | None = None) -> None:
     flame_controller = FlameController(
         arguments_object.ip,
         arguments_object.port,
-        mount_path="/dls/science/b21",
+        mount_path="/",
+        default_file_path="dls/b21/data",
         default_file_name="data",
     )
     flame_controller.set_path(["FLAME"])
