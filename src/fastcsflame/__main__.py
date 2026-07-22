@@ -32,11 +32,6 @@ def main(args: Sequence[str] | None = None) -> None:
         "the flame spectrometer is connected to",
     )
     parser.add_argument(
-        "mount-path",
-        type=str,
-        help="The path in the container to the mounted filesystem for saving data",
-    )
-    parser.add_argument(
         "-v",
         "--version",
         action="version",
