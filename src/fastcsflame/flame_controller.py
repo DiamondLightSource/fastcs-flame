@@ -35,7 +35,9 @@ class FlameController(Controller):
     scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
 
     capture: AttrRW[bool, DummyBoolIORef]
+    # Where h5 files will be saved within the mounted directory
     file_path: AttrRW[str, DummyStrIORef]
+    # Name of saved h5 file (not including extension)
     file_name: AttrRW[str, DummyStrIORef]
 
     def __init__(
@@ -55,11 +57,13 @@ class FlameController(Controller):
         ip: IP address of the device the spectrometer is connected to
             example: "192.168.0.1"
         port: Port of the device the spectrometer is communicating on
-        output_data_file_path: File to store acquired data in
-            If a file does not exist one will be created
-            If a file does exist it will be overwritten
-        default_acquisition_period: Default value for acquisition period (seconds)
-        default_total_scans: Default value for scans to perform in acquisition period
+        mount_path: Path to mounted DLS filesystem directory in container
+        default_file_path: Initial value for file_path PV
+        defualt_file_name: Initial value for file_name PV
+        lowest_wavelength: Lowest wavelength spectrometer can measure (in nm)
+        highest_wavelength: Highest wavelength spectrometer can measure (in nm)
+        scan_data_length: Number of discrete intensity values included returned
+            from a spectrometer scan
         """
         super().__init__(
             ios=[
