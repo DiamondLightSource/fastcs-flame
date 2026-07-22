@@ -28,7 +28,7 @@ FROM build AS debug
 
 
 # Set origin to use ssh
-RUN git remote set-url origin git@github.com:/fastcsflame.git
+RUN git remote set-url origin git@github.com:/fastcs-flame.git
 
 
 # For this pod to understand finding user information from LDAP
