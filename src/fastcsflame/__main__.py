@@ -32,9 +32,10 @@ def main(args: Sequence[str] | None = None) -> None:
         "the flame spectrometer is connected to",
     )
     parser.add_argument(
-        "mount-path",
+        "--pvprefix",
+        default="BL21B-EA-FLAME-01",
         type=str,
-        help="The path in the container to the mounted filesystem for saving data",
+        help="The prefix for referencing PVs once the IOC has been launched",
     )
     parser.add_argument(
         "-v",
@@ -54,10 +55,11 @@ def main(args: Sequence[str] | None = None) -> None:
     flame_controller = FlameController(
         arguments_object.ip,
         arguments_object.port,
-        mount_path="/dls/science/b21",
+        mount_path="/",
+        default_file_path="dls/b21/data",
         default_file_name="data",
     )
-    flame_controller.set_path(["FLAME"])
+    flame_controller.set_path([arguments_object.pvprefix])
 
     fastcs = FastCS(flame_controller, [epics_ca])
 
