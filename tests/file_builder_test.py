@@ -23,9 +23,9 @@ class FileParameters:
     data: NDArray[np.int64]
 
 
-BASIC_DUMMY_PATH = "/data"
+BASIC_DUMMY_PATH = "/data/"
 BASIC_DUMMY_NAME = "data"
-EXTENDED_DUMMY_PATH = "/dls/science/more"
+EXTENDED_DUMMY_PATH = "/dls/science/more/"
 ALTERNATE_DUMMY_NAME = "dt"
 BASIC_WAVELENGTH_ARRAY = np.array(range(2044), dtype=np.float64)
 ALTERNATE_WAVELENGTH_ARRAY = np.array(range(1000), dtype=np.float64)
@@ -95,13 +95,13 @@ def test_creation(h5file):
     params = h5file
 
     # Test the file is created in the correct place
-    file = h5py.File(f"{params.full_path}/{params.file_name}.h5", "r")
+    file = h5py.File(f"{params.full_path}{params.file_name}.h5", "r")
     assert isinstance(file, h5py.File)
 
 
 def test_structure(h5file):
     params = h5file
-    file = h5py.File(f"{params.full_path}/{params.file_name}.h5", "r")
+    file = h5py.File(f"{params.full_path}{params.file_name}.h5", "r")
 
     entry_group = file["entry"]
     assert isinstance(entry_group, h5py.Group)
@@ -122,7 +122,7 @@ def test_structure(h5file):
 
 def test_values(h5file):
     params = h5file
-    file = h5py.File(f"{params.full_path}/{params.file_name}.h5", "r")
+    file = h5py.File(f"{params.full_path}{params.file_name}.h5", "r")
 
     dataset = file["entry/data/data"]
     assert isinstance(dataset, h5py.Dataset)
