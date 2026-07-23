@@ -15,7 +15,7 @@ from . import __version__
 
 __all__ = ["main"]
 
-SCREEN_GENERATION_OUTPUT_DIRECTORY = Path("epics/opi")
+SCREEN_GENERATION_OUTPUT_DIRECTORY = Path("/epics/opi")
 DEFAULT_PV_PREFIX = "BL21B-EA-FLAME-01"
 
 
