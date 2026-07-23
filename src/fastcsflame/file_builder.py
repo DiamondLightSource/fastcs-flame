@@ -62,7 +62,7 @@ class FileBuilder:
                     "Close previously created file before creating a new file"
                 )
 
-        self.file = h5py.File(f"{self.mount_path}{file_path}/{file_name}.h5", "w")
+        self.file = h5py.File(f"{self.mount_path}{file_path}{file_name}.h5", "w")
 
         entry_group = self.file.create_group("entry")
 

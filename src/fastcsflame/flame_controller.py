@@ -40,6 +40,8 @@ class FlameController(Controller):
     # Name of saved h5 file (not including extension)
     file_name: AttrRW[str, DummyStrIORef]
 
+    scan_in_progress: AttrR[bool, DummyBoolIORef]
+
     def __init__(
         self,
         ip: str,
@@ -93,6 +95,8 @@ class FlameController(Controller):
         self.file_path = AttrRW(String(), io_ref=DummyStrIORef(default_file_path))
         self.file_name = AttrRW(String(), io_ref=DummyStrIORef(default_file_name))
 
+        self.scan_in_progress = AttrR(Bool(), io_ref=DummyBoolIORef(False))
+
     async def connect(self):
         await super().connect()
         await self.spec_tel_obj.connect()
@@ -104,11 +108,14 @@ class FlameController(Controller):
         Stores scan data in ScanData PV and h5 file (if capture mode is on)
         """
         try:
+            await self.scan_in_progress.update(True)
             new_scan_data = await self.spec_tel_obj.scan()
+            await self.scan_in_progress.update(False)
             await self.scan_data.update(new_scan_data)
             if self.capture.get():
                 self.file_builder.add_scan(self.scan_data.get())
         except UnexpectedResponseError as e:
+            await self.scan_in_progress.update(False)
             logger.warning(
                 "Spectrometer gave unexpected response from scan trigger attempt: "
                 + f"\n{e.args[0] if len(e.args) != 0 else '[No message]'}"

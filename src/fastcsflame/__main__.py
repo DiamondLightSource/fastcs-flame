@@ -15,6 +15,9 @@ from . import __version__
 
 __all__ = ["main"]
 
+SCREEN_GENERATION_OUTPUT_DIRECTORY = Path("epics/opi")
+DEFAULT_PV_PREFIX = "BL21B-EA-FLAME-01"
+
 
 def main(args: Sequence[str] | None = None) -> None:
     """Argument parser for the CLI."""
@@ -33,7 +36,7 @@ def main(args: Sequence[str] | None = None) -> None:
     )
     parser.add_argument(
         "--pvprefix",
-        default="BL21B-EA-FLAME-01",
+        default=DEFAULT_PV_PREFIX,
         type=str,
         help="The prefix for referencing PVs once the IOC has been launched",
     )
@@ -48,15 +51,16 @@ def main(args: Sequence[str] | None = None) -> None:
     configure_logging()
 
     gui_options = EpicsGUIOptions(
-        output_dir=Path("epics/opi"), title="Flame Spectrometer Controller"
+        output_dir=SCREEN_GENERATION_OUTPUT_DIRECTORY,
+        title=("Flame Spectrometer Controller - " + arguments_object.pvprefix),
     )
     epics_ca = EpicsCATransport(gui=gui_options)
 
     flame_controller = FlameController(
         arguments_object.ip,
         arguments_object.port,
-        mount_path="/",
-        default_file_path="dls/b21/data",
+        mount_path="/.",
+        default_file_path="/dls/b21/data/",
         default_file_name="data",
     )
     flame_controller.set_path([arguments_object.pvprefix])
