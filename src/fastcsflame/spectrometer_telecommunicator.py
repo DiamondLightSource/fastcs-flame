@@ -148,7 +148,18 @@ class SpectrometerTelecommunicator:
                 last_response_raw_section = await loop.sock_recv(
                     self.socket_obj, self.recieve_buffer_size
                 )
+            # Means connection has been broken
+            if last_response_raw_section == b"":
+                break
             response_raw += last_response_raw_section
+
+        # Means connection was broken at some point
+        if response_raw == b"":
+            # Try restarting connection
+            # This will throw an error if the connection is still down
+            await self.restart_connection()
+            # Try sending query again
+            await self._send_query(query, end_signal=end_signal)
 
         return response_raw
 
