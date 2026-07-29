@@ -36,18 +36,18 @@ class DummySpectrometer:
 
         loop = asyncio.get_event_loop()
         # Do we also need to setblocking for connection??
-        connection, address = await loop.sock_accept(self.server_socket)
+        self.connection, address = await loop.sock_accept(self.server_socket)
         # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
-        connection.send(startup_message)
+        self.connection.send(startup_message)
 
         # Recieve and process messages until the connection is closed
         while True:
-            raw_last_message = await loop.sock_recv(connection, 1024)
+            raw_last_message = await loop.sock_recv(self.connection, 1024)
             if raw_last_message.decode("ascii") == "":
                 return
             response = await self._handle_request(raw_last_message)
-            self._respond_in_chunks(connection, response)
+            self._respond_in_chunks(self.connection, response)
 
     def _respond_in_chunks(self, connection: socket, response: bytes):
         """

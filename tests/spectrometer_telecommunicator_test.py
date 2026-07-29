@@ -33,6 +33,34 @@ def custom_setup_dummy_spectrometer(
     asyncio.run(dummy_spectrometer.start(startup_message=startup_message))
 
 
+def ephemeral_dummy_spectrometer(
+    port: int, disconnect_after_time: float, reconnect_after_time: float | None = None
+):
+    dummy_spectrometer = DummySpectrometer(port)
+
+    async def run_with_disconnect():
+
+        async def close_socket():
+            await asyncio.sleep(disconnect_after_time)
+            dummy_spectrometer.connection.close()
+            if reconnect_after_time is not None:
+                await asyncio.sleep(reconnect_after_time)
+                dummy_spectrometer.server_socket = socket()
+                dummy_spectrometer.server_socket.bind(("", port))
+                await dummy_spectrometer.start()
+
+        task = asyncio.create_task(close_socket())
+
+        await dummy_spectrometer.start()
+        task.cancel()
+
+    try:
+        asyncio.run(run_with_disconnect())
+    finally:
+        dummy_spectrometer.server_socket.close()
+        dummy_spectrometer.connection.close()
+
+
 @asynccontextmanager
 async def spec_tel_coroutine():
     """
@@ -110,6 +138,27 @@ async def test_bad_initial_connection_message():
     try:
         with pytest.raises(UnexpectedResponseError):
             await spec_tel_object.connect()
+    finally:
+        await spec_tel_object.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_device_connection_lost():
+    mp_context = multiprocessing.get_context()
+    server_process = mp_context.Process(
+        target=ephemeral_dummy_spectrometer,
+        args=[7016, 8.0],
+    )
+    server_process.start()
+
+    await asyncio.sleep(1)
+
+    spec_tel_object = SpecTel("127.0.0.1", 7016)
+    try:
+        with pytest.raises(TimeoutError):
+            await spec_tel_object.connect()
+            await asyncio.sleep(15)
+            await spec_tel_object.get_version()
     finally:
         await spec_tel_object.disconnect()
 
