@@ -110,6 +110,8 @@ class SpectrometerTelecommunicator:
         # And im not sure what you would even do in this case when you already
         # tried to close it??
         await asyncio.sleep(0.5)
+        self.socket_obj = None
+        self.connected = False
 
     async def _send_query(self, query: str, end_signal: bytes = b"\n\r> ") -> bytes:
         """
