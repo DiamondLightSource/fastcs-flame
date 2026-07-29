@@ -101,6 +101,10 @@ class FlameController(Controller):
         await super().connect()
         await self.spec_tel_obj.connect()
 
+    async def disconnect(self) -> None:
+        await super().disconnect()
+        await self.spec_tel_obj.disconnect()
+
     @command()
     async def single_scan(self):
         """
