@@ -31,8 +31,8 @@ class SpectrometerTelecommunicator:
     recieve_buffer_size: int
     timeout: float
 
-    socket_obj: socket | None = None
-    connected: bool = False
+    socket_obj: socket | None
+    connected: bool
 
     def __init__(
         self, ip: str, port: int, recieve_buffer_size: int = 1024, timeout: float = 15.0
@@ -52,6 +52,8 @@ class SpectrometerTelecommunicator:
         self.port = port
         self.recieve_buffer_size = recieve_buffer_size
         self.timeout = timeout
+        self.socket_obj = None
+        self.connected = False
 
     async def connect(self):
         """
