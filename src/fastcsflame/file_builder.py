@@ -24,8 +24,8 @@ class FileBuilder:
 
     _wavelengths: NDArray[np.float64]
     _mount_path: str
-    file: h5py.File | None = None
-    scans_added: int = 0
+    file: h5py.File | None
+    scans_added: int
 
     def __init__(self, mount_path: str, wavelengths: NDArray[np.float64]):
         """
@@ -35,6 +35,8 @@ class FileBuilder:
         """
         self.mount_path = mount_path
         self._wavelengths = wavelengths
+        self.scans_added = 0
+        self.file = None
 
     def create_file(self, file_path: str, file_name: str, auto_close=False):
         """
