@@ -7,7 +7,7 @@
 
 EPICS driver for the OceanOptics Flame mini spectrometer
 
-When started, the script connects to a spectrometer at a specific IP and port and interacts with it using the TelNet protocol. An IOC for interacting with this device is started. This allows users to interact with the device using channel access (controller name is FLAME) or through a Phoebus UI (opi files are generated in the opi directory). Users can create a file holding collected data by starting the a capture period (set Capture to 1). This will create a h5 file at the location specified by the FilePath PV with the value of the FileName PV as its name. Every time the SingleScan command is run scan data from the device will be added to this file. To end the capture period set Capture to 0 again. This will close the file and future scans will not be added.
+When started, the script connects to a spectrometer at a specific IP and port and interacts with it using the raw IP socket communication. An IOC for interacting with this device is started. This allows users to interact with the device using channel access (controller name is FLAME) or through a Phoebus UI (opi files are generated in the opi directory). Users can create a file holding collected data by starting the a capture period (set Capture to 1). This will create a h5 file at the location specified by the FilePath PV with the value of the FileName PV as its name. Every time the SingleScan command is run scan data from the device will be added to this file. To end the capture period set Capture to 0 again. This will close the file and future scans will not be added.
 
 What            | Where
 :---:           | :---:
