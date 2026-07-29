@@ -11,7 +11,7 @@ When started, the script connects to a spectrometer at a specific IP and port an
 
 What            | Where
 :---:           | :---:
-Source          | <https://gitlab.diamond.ac.uk/controls/containers/beamline/fastcs-flame>
+Source          | https://github.com/DiamondLightSource/fastcs-flame
 
 # PVs of the Flame IOC
 - IntegrationTime
