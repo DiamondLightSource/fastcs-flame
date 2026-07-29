@@ -51,7 +51,7 @@ async def spec_tel_coroutine():
     try:
         yield spec_tel_object
     finally:
-        await close_non_blocking_socket(spec_tel_object.socket_obj)
+        await spec_tel_object.disconnect()
 
 
 async def close_non_blocking_socket(socket_obj: socket | None):
@@ -89,7 +89,7 @@ async def test_bad_socket():
         with pytest.raises((ConnectionRefusedError, ConnectionResetError)):
             await spec_tel_object.connect()
     finally:
-        await close_non_blocking_socket(spec_tel_object.socket_obj)
+        await spec_tel_object.disconnect()
 
 
 @pytest.mark.asyncio
@@ -111,7 +111,7 @@ async def test_bad_initial_connection_message():
         with pytest.raises(UnexpectedResponseError):
             await spec_tel_object.connect()
     finally:
-        await close_non_blocking_socket(spec_tel_object.socket_obj)
+        await spec_tel_object.disconnect()
 
 
 @pytest.mark.asyncio
@@ -159,7 +159,7 @@ async def test_invalid_response():
         with pytest.raises(UnexpectedResponseError):
             await spec_tel_object.get_version()
     finally:
-        await close_non_blocking_socket(spec_tel_object.socket_obj)
+        await spec_tel_object.disconnect()
 
 
 @pytest.mark.asyncio
