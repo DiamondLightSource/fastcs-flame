@@ -99,6 +99,18 @@ class SpectrometerTelecommunicator:
                 + f"recieved: {connection_message}"
             )
 
+    async def disconnect(self):
+        if self.socket_obj is None:
+            # Dont need to throw error in this case
+            return
+        self.socket_obj.close()
+        # This method is quite crude but it seems to have a high success rate
+        # Ideally you would run recv from the socket until a b'' is recieved
+        # This would also require a timeout incase nothing is ever recieved
+        # And im not sure what you would even do in this case when you already
+        # tried to close it??
+        await asyncio.sleep(0.5)
+
     async def _send_query(self, query: str, end_signal: bytes = b"\n\r> ") -> bytes:
         """
         Send a query that can handle single or multiple packet responses
