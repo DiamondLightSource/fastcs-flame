@@ -3,6 +3,11 @@ from socket import socket
 
 from fastcs.logging import logger
 
+# Initial message recieved from a TelNet connection
+# We do NOT communicate using TelNet (we use raw IP sockets)
+# BUT we still expect this message when connecting to the device
+TELNET_ASCII_CONNECTION_MESSAGE = b"\xff\xfa,k\x0f\xff\xf0"
+
 
 class UnexpectedResponseError(Exception):
     pass
@@ -18,7 +23,7 @@ class AlreadyConnectedError(Exception):
 
 class SpectrometerTelecommunicator:
     """
-    Communicates with Flame spectrometers using Telnet
+    Communicates with Flame spectrometers using raw IP sockets
     """
 
     ip: str
@@ -88,7 +93,7 @@ class SpectrometerTelecommunicator:
 
         # TODO: Add a case for binary start up message too
         # Maybe send signal to convert it ascii??
-        if connection_message != b"\xff\xfa,k\x0f\xff\xf0":
+        if connection_message != TELNET_ASCII_CONNECTION_MESSAGE:
             raise UnexpectedResponseError(
                 "Expected connection message: b'\\xff\\xfa,k\\x0f\\xff\\xf0' "
                 + f"recieved: {connection_message}"
