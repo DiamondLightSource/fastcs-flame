@@ -113,6 +113,10 @@ class SpectrometerTelecommunicator:
         self.socket_obj = None
         self.connected = False
 
+    async def restart_connection(self):
+        await self.disconnect()
+        await self.connect()
+
     async def _send_query(self, query: str, end_signal: bytes = b"\n\r> ") -> bytes:
         """
         Send a query that can handle single or multiple packet responses
