@@ -8,6 +8,8 @@ from fastcsflame.flame_controller_attributes import (
     DummyFloatIORef,
     DummyIntIO,
     DummyIntIORef,
+    SpectrometerWCCIO,
+    SpectrommeterWCCIORef,
 )
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
@@ -25,13 +27,13 @@ class CalibrationSubcontroller(Controller):
     pixel_3_wavelength: AttrRW[float, DummyFloatIORef]
     pixel_4_wavelength: AttrRW[float, DummyFloatIORef]
 
+    zero_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
+    first_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
+    second_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
+    third_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
+
     def __init__(self, spec_tel_obj: SpecTel):
-        super().__init__(
-            ios=[
-                DummyIntIO(),
-                DummyFloatIO(),
-            ]
-        )
+        super().__init__(ios=[DummyIntIO(), DummyFloatIO(), SpectrometerWCCIO()])
 
         self.pixel_1_index = AttrRW(Int(), io_ref=DummyIntIORef(0))
         self.pixel_2_index = AttrRW(Int(), io_ref=DummyIntIORef(1))
@@ -42,6 +44,19 @@ class CalibrationSubcontroller(Controller):
         self.pixel_2_wavelength = AttrRW(Float(), io_ref=DummyFloatIORef(210.0))
         self.pixel_3_wavelength = AttrRW(Float(), io_ref=DummyFloatIORef(220.0))
         self.pixel_4_wavelength = AttrRW(Float(), io_ref=DummyFloatIORef(230.0))
+
+        self.zero_order_wcc = AttrRW(
+            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 0)
+        )
+        self.first_order_wcc = AttrRW(
+            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 1)
+        )
+        self.second_order_wcc = AttrRW(
+            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 2)
+        )
+        self.third_order_wcc = AttrRW(
+            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 3)
+        )
 
     @command()
     async def auto_calibrate(self):
