@@ -113,6 +113,43 @@ class SpectrometerScanIO(AttributeIO[np.ndarray, SpectrometerScanIORef]):
 
 
 @dataclass
+class SpectrommeterWCCIORef(AttributeIORef):
+    spec_tel_obj: SpecTel
+    order: int
+
+    def __init__(self, spec_tel_obj: SpecTel, order: int):
+        super().__init__(update_period=ONCE)
+
+        self.spec_tel_obj = spec_tel_obj
+        self.order = order
+
+
+class SpectrometerWCCIO(AttributeIO[float, SpectrommeterWCCIORef]):
+    async def update(self, attr: AttrR[float, SpectrommeterWCCIORef]):
+        spec_tel_obj = attr.io_ref.spec_tel_obj
+
+        try:
+            scan_data = await spec_tel_obj.get_wcc(attr.io_ref.order)
+
+            await attr.update(scan_data)
+        except UnexpectedResponseError as _:
+            pass
+            # logger.warning(
+            #     "Spectrometer gave unexpected response from scan data query: "
+            #     + f"\n{e.args[0]}"
+            #     + "\nScanData PV not updated"
+            # )
+
+    async def send(self, attr: AttrW[float, SpectrommeterWCCIORef], value: float):
+        spec_tel_obj = attr.io_ref.spec_tel_obj
+        await spec_tel_obj.set_wcc(attr.io_ref.order, value)
+
+        # update RBV to match written value
+        if isinstance(attr, AttrRW):
+            await attr.update(value)
+
+
+@dataclass
 class LampActiveIORef(AttributeIORef):
     """
     Reference for lamp attribute on a FastCS controller

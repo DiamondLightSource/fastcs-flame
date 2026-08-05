@@ -446,3 +446,9 @@ class SpectrometerTelecommunicator:
         if on:
             lamp_value = 1
         self._extract_response(await self._send_query("J" + str(lamp_value) + "\n"))
+
+    async def get_wcc(self, order: int) -> float:
+        return 0.0
+
+    async def set_wcc(self, order: int, value: float):
+        pass
