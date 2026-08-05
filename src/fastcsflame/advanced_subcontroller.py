@@ -16,7 +16,7 @@ from fastcsflame.spectrometer_telecommunicator import (
 )
 
 
-class FlameController(Controller):
+class AdvancedSubcontroller(Controller):
     integration_time: AttrRW[int, IntegrationTimeIORef]
     lamp: AttrRW[bool, DummyBoolIORef]
 

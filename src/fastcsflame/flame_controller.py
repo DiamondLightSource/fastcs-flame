@@ -5,6 +5,7 @@ from fastcs.datatypes import Bool, String, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
 
+from fastcsflame.advanced_subcontroller import AdvancedSubcontroller
 from fastcsflame.file_builder import FileBuilder
 from fastcsflame.flame_controller_attributes import (
     SpectrometerScanIO,
@@ -85,6 +86,11 @@ class FlameController(Controller):
         self.file_name = AttrRW(String(), initial_value=default_file_name)
 
         self.scan_in_progress = AttrR(Bool(), initial_value=False)
+
+        self.add_sub_controller(
+            "Advanced",
+            AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
+        )
 
     async def connect(self):
         await super().connect()
