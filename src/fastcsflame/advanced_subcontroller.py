@@ -1,3 +1,5 @@
+from collections.abc import Awaitable, Callable
+
 from fastcs.attributes import AttrRW
 from fastcs.controllers import Controller
 from fastcs.datatypes import Bool, Int
@@ -9,14 +11,24 @@ from fastcsflame.flame_controller_attributes import (
     IntegrationTimeIO,
     IntegrationTimeIORef,
 )
+from fastcsflame.spectrometer_telecommunicator import (
+    SpectrometerTelecommunicator as SpecTel,
+)
 
 
 class FlameController(Controller):
     integration_time: AttrRW[int, IntegrationTimeIORef]
     lamp: AttrRW[bool, DummyBoolIORef]
 
-    def __init__(self, spec_tel_obj):
+    def __init__(
+        self,
+        spec_tel_obj: SpecTel,
+        connect_method: Callable[[], Awaitable[None]],
+        disconnect_method: Callable[[], Awaitable[None]],
+    ):
         super().__init__(ios=[IntegrationTimeIO(), DummyBoolIO()])
+        self.connect_method = connect_method
+        self.disconnect_method = disconnect_method
 
         self.spec_tel_obj = spec_tel_obj
         self.integration_time = AttrRW(
@@ -30,14 +42,8 @@ class FlameController(Controller):
 
     @command()
     async def force_connect(self):
-        await self.connect()
+        await self.connect_method()
 
     @command()
     async def force_disconnect(self):
-        await self.disconnect()
-
-    async def connect(self) -> None:
-        return await super().connect()
-
-    async def disconnect(self) -> None:
-        return await super().disconnect()
+        await self.disconnect_method()
