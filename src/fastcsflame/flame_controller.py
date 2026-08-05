@@ -1,14 +1,12 @@
 import numpy as np
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import Controller
-from fastcs.datatypes import Bool, Int, String, Waveform
+from fastcs.datatypes import Bool, String, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
 
 from fastcsflame.file_builder import FileBuilder
 from fastcsflame.flame_controller_attributes import (
-    IntegrationTimeIO,
-    IntegrationTimeIORef,
     SpectrometerScanIO,
     SpectrometerScanIORef,
 )
@@ -25,8 +23,6 @@ class FlameController(Controller):
 
     spec_tel_obj: SpecTel
     file_builder: FileBuilder
-
-    integration_time: AttrRW[int, IntegrationTimeIORef]
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
 
@@ -65,7 +61,6 @@ class FlameController(Controller):
         """
         super().__init__(
             ios=[
-                IntegrationTimeIO(),
                 SpectrometerScanIO(),
             ]
         )
@@ -76,9 +71,6 @@ class FlameController(Controller):
             np.linspace(lowest_wavelength, highest_wavelength, scan_data_length),
         )
 
-        self.integration_time = AttrRW(
-            Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
-        )
         self.scan_data = AttrR(
             Waveform(int, shape=(scan_data_length,)),
             io_ref=SpectrometerScanIORef(self.spec_tel_obj),
