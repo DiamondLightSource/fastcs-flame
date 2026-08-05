@@ -16,6 +16,7 @@ dependencies = [
     "fastcs[epicsca]",
     "h5py",
     "numpy",
+    "sympy",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
