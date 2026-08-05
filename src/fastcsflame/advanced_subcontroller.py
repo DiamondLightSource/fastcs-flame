@@ -1,6 +1,7 @@
 from fastcs.attributes import AttrRW
 from fastcs.controllers import Controller
 from fastcs.datatypes import Bool, Int
+from fastcs.methods.command import command
 
 from fastcsflame.flame_controller_attributes import (
     DummyBoolIO,
@@ -26,3 +27,17 @@ class FlameController(Controller):
 
     async def lamp_change(self, new_lamp_status):
         pass
+
+    @command()
+    async def force_connect(self):
+        await self.connect()
+
+    @command()
+    async def force_disconnect(self):
+        await self.disconnect()
+
+    async def connect(self) -> None:
+        return await super().connect()
+
+    async def disconnect(self) -> None:
+        return await super().disconnect()
