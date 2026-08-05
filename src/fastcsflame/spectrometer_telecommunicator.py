@@ -438,3 +438,11 @@ class SpectrometerTelecommunicator:
         data = [int(s) for s in scan_result_str.split(" ")[7:-1]]
         print(data)
         return data
+
+    async def set_lamp(self, on: bool):
+        # Copied from integration time code
+        # Needs manual testing
+        lamp_value = 0
+        if on:
+            lamp_value = 1
+        self._extract_response(await self._send_query("J" + str(lamp_value) + "\n"))
