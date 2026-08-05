@@ -92,6 +92,11 @@ class FlameController(Controller):
             AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
         )
 
+        self.add_sub_controller(
+            "Advanced",
+            AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
+        )
+
     async def connect(self):
         await super().connect()
         try:
