@@ -37,8 +37,8 @@ class FlameController(Controller):
         self.lamp = AttrRW(Bool(), io_ref=DummyBoolIORef(True))
         self.lamp.add_on_update_callback(self.lamp_change)
 
-    async def lamp_change(self, new_lamp_status):
-        pass
+    async def lamp_change(self, new_lamp_status: bool):
+        await self.spec_tel_obj.set_lamp(new_lamp_status)
 
     @command()
     async def force_connect(self):
