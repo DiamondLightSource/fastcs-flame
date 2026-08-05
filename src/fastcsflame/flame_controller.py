@@ -23,6 +23,7 @@ class FlameController(Controller):
 
     spec_tel_obj: SpecTel
     file_builder: FileBuilder
+    connected: AttrR[bool, DummyBoolIORef]
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
 
@@ -65,6 +66,8 @@ class FlameController(Controller):
             ]
         )
 
+        self.connected = AttrR(Bool(), io_ref=DummyBoolIORef(False))
+
         self.spec_tel_obj = SpecTel(ip, port)
         self.file_builder = FileBuilder(
             mount_path,
@@ -86,10 +89,12 @@ class FlameController(Controller):
     async def connect(self):
         await super().connect()
         await self.spec_tel_obj.connect()
+        await self.connected.update(True)
 
     async def disconnect(self) -> None:
         await super().disconnect()
         await self.spec_tel_obj.disconnect()
+        await self.connected.update(False)
 
     @command()
     async def single_scan(self):
