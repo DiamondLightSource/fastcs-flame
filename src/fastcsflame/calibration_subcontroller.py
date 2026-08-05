@@ -2,6 +2,8 @@ from fastcs.attributes import AttrRW
 from fastcs.controllers import Controller
 from fastcs.datatypes import Float, Int
 from fastcs.methods.command import command
+from sympy import solve
+from sympy.abc import a, b, c, d
 
 from fastcsflame.flame_controller_attributes import (
     DummyFloatIO,
@@ -60,4 +62,21 @@ class CalibrationSubcontroller(Controller):
 
     @command()
     async def auto_calibrate(self):
-        pass
+        equations = []
+        points = [
+            (self.pixel_1_index.get(), self.pixel_1_wavelength.get()),
+            (self.pixel_2_index.get(), self.pixel_2_wavelength.get()),
+            (self.pixel_3_index.get(), self.pixel_3_wavelength.get()),
+            (self.pixel_4_index.get(), self.pixel_4_wavelength.get()),
+        ]
+
+        for x, y in points:
+            equation = (a * x**3) + (b * x**2) + (c * x) + d - y
+            equations.append(equation)
+
+        solutions = solve(equations, a, b, c, d)
+
+        await self.third_order_wcc.put(solutions[0])
+        await self.second_order_wcc.put(solutions[1])
+        await self.first_order_wcc.put(solutions[2])
+        await self.zero_order_wcc.put(solutions[3])
