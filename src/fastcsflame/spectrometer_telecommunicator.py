@@ -450,7 +450,7 @@ class SpectrometerTelecommunicator:
 
     async def get_wcc(self, order: int) -> float:
         response = self._extract_response(
-            await self._send_query("J" + str(order + 1) + "\n")
+            await self._send_query("?x" + str(order + 1) + "\n")
         )
 
         if response[-2:] == "\n\r":
