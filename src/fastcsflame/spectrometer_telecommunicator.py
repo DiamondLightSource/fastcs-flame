@@ -450,7 +450,7 @@ class SpectrometerTelecommunicator:
 
     async def get_wcc(self, order: int) -> float:
         response = self._extract_response(
-            await self._send_query("J" + str(order) + "\n")
+            await self._send_query("J" + str(order + 1) + "\n")
         )
 
         if response[-2:] == "\n\r":
@@ -466,7 +466,7 @@ class SpectrometerTelecommunicator:
         # Need to insert a character in the second space of the value string
         # This character gets ignored when sending to spectrometer for some reason
         value_str = value_str[:2] + "_" + value_str[2:]
-        query = f"x{order}\r{value_str}"
+        query = f"x{order + 1}\r{value_str}"
         # Cant extract response as it doesnt follow the same format as the others
         # Doesnt include an acknowledgement bit as almost any input is valid
         response_raw = await self._send_query(query)
