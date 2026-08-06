@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager, contextmanager
+from decimal import Decimal
 from socket import socket
 
 from fastcs.logging import logger
@@ -448,7 +449,56 @@ class SpectrometerTelecommunicator:
         self._extract_response(await self._send_query("J" + str(lamp_value) + "\n"))
 
     async def get_wcc(self, order: int) -> float:
-        return 0.0
+        response = self._extract_response(
+            await self._send_query("J" + str(order) + "\n")
+        )
+
+        if response[-2:] == "\n\r":
+            response = response[:-2]
+        else:
+            print("no trailing characters found on wcc query")
+
+        return float(response)
 
     async def set_wcc(self, order: int, value: float):
-        pass
+        value_str = self._float_to_str14(value)
+
+        # Need to insert a character in the second space of the value string
+        # This character gets ignored when sending to spectrometer for some reason
+        value_str = value_str[:2] + "_" + value_str[2:]
+        query = f"x{order}\r{value_str}"
+        # Cant extract response as it doesnt follow the same format as the others
+        # Doesnt include an acknowledgement bit as almost any input is valid
+        response_raw = await self._send_query(query)
+        if b"\x15" in response_raw:
+            print("NAK recieved for set WCC")
+        # Could check response raw includes the right value here??
+
+    @staticmethod
+    def _float_to_str14(value: float) -> str:
+        scientific_notation_str = f"{Decimal(value):.7e}"
+        length = len(scientific_notation_str)
+        # Format:
+        # (-)X.XXXXXXXe(+/-)(X)X
+        #             ^ exponent index
+        exponent_index = scientific_notation_str.find("e")
+        # Exponent must be made up of 2 digits
+        # Python Decimal cannot do this for us
+        # If e[sign][exponent] takes up 3 digits [exponent] only takes up 1
+        if length - exponent_index == 3:
+            # Insert extra 0
+            scientific_notation_str = (
+                scientific_notation_str[: exponent_index + 2]
+                + "0"
+                + scientific_notation_str[exponent_index + 2 :]
+            )
+        # Decimal notation can include a + before the exponent value
+        # We do not want this
+        plus_index = scientific_notation_str.find("+")
+        if plus_index != -1:
+            # Remove +
+            scientific_notation_str = (
+                scientific_notation_str[:plus_index]
+                + scientific_notation_str[plus_index + 1 :]
+            )
+        return scientific_notation_str
