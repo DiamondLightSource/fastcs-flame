@@ -465,7 +465,7 @@ class SpectrometerTelecommunicator:
 
         # Need to insert a character in the second space of the value string
         # This character gets ignored when sending to spectrometer for some reason
-        value_str = value_str[:2] + "_" + value_str[2:]
+        value_str = value_str[:1] + "_" + value_str[1:]
         query = f"x{order + 1}\r{value_str}\n"
         # Cant extract response as it doesnt follow the same format as the others
         # Doesnt include an acknowledgement bit as almost any input is valid
