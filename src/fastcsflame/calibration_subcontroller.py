@@ -76,7 +76,7 @@ class CalibrationSubcontroller(Controller):
 
         solutions = solve(equations, a, b, c, d)
 
-        await self.third_order_wcc.put(solutions[0])
-        await self.second_order_wcc.put(solutions[1])
-        await self.first_order_wcc.put(solutions[2])
-        await self.zero_order_wcc.put(solutions[3])
+        await self.third_order_wcc.put(float(solutions[a]))
+        await self.second_order_wcc.put(float(solutions[b]))
+        await self.first_order_wcc.put(float(solutions[c]))
+        await self.zero_order_wcc.put(float(solutions[d]))
