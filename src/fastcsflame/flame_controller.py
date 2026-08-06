@@ -6,6 +6,7 @@ from fastcs.logging import logger
 from fastcs.methods.command import command
 
 from fastcsflame.advanced_subcontroller import AdvancedSubcontroller
+from fastcsflame.calibration_subcontroller import CalibrationSubcontroller
 from fastcsflame.file_builder import FileBuilder
 from fastcsflame.flame_controller_attributes import (
     SpectrometerScanIO,
@@ -95,6 +96,9 @@ class FlameController(Controller):
         self.add_sub_controller(
             "Advanced",
             AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
+        )
+        self.add_sub_controller(
+            "Calibration", CalibrationSubcontroller(self.spec_tel_obj)
         )
 
     async def connect(self):
