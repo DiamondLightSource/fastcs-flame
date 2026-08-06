@@ -112,6 +112,8 @@ class SpectrometerScanIO(AttributeIO[np.ndarray, SpectrometerScanIORef]):
             )
 
 
+# NOTE: FastCS Float's are not high enough precision to represent all coefficients
+# Investigate if this a FastCS issue or an EPICS one
 @dataclass
 class SpectrommeterWCCIORef(AttributeIORef):
     spec_tel_obj: SpecTel
