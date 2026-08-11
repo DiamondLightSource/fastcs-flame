@@ -1,3 +1,5 @@
+import asyncio
+
 import numpy as np
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import Controller
@@ -105,11 +107,14 @@ class FlameController(Controller):
         except BaseException as e:
             logger.warning("Failed connection attempt")
             logger.warning(e)
-        await self.connected.update(self.spec_tel_obj.connected)
+        await self.update_connected()
 
     async def disconnect(self) -> None:
         await super().disconnect()
         await self.spec_tel_obj.disconnect()
+        await self.update_connected()
+
+    async def update_connected(self) -> None:
         await self.connected.update(self.spec_tel_obj.connected)
 
     @command()
@@ -143,3 +148,11 @@ class FlameController(Controller):
             self.file_builder.create_file(self.file_path.get(), self.file_name.get())
         else:
             self.file_builder.close_file()
+
+    def post_initialise(self):
+        super().post_initialise()
+
+        # Need to update connected AFTER PVs are replaced
+        # PVs are replaced after connect() code is run
+        # So state updates in the initial connect() code will not be realised
+        asyncio.create_task(self.update_connected())
