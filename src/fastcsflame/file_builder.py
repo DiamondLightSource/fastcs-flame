@@ -27,18 +27,23 @@ class FileBuilder:
     file: h5py.File | None
     scans_added: int
 
-    def __init__(self, mount_path: str, wavelengths: NDArray[np.float64]):
+    def __init__(self, mount_path: str):
         """
         wavelengths: An array of wavelength values in nanometers
             Represents wavelengths of intensity data points collected by flame
             Should be the same length as the scan data collected by flame
         """
         self.mount_path = mount_path
-        self._wavelengths = wavelengths
         self.scans_added = 0
         self.file = None
 
-    def create_file(self, file_path: str, file_name: str, auto_close=False):
+    def create_file(
+        self,
+        file_path: str,
+        file_name: str,
+        wavelengths: NDArray[np.float64],
+        auto_close=False,
+    ):
         """
         Creates and structures an h5 file for Flame data
         file_path: Where to create the file
@@ -56,6 +61,8 @@ class FileBuilder:
         This method may be called multiple times from this class to create multiple
         files
         """
+        self._wavelengths = wavelengths
+
         if self.file is not None:
             if auto_close:
                 self.file.close()

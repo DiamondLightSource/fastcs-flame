@@ -81,7 +81,6 @@ class FlameController(Controller):
         self.spec_tel_obj = SpecTel(ip, port)
         self.file_builder = FileBuilder(
             mount_path,
-            np.linspace(lowest_wavelength, highest_wavelength, scan_data_length),
         )
 
         self.scan_data = AttrR(
@@ -174,8 +173,16 @@ class FlameController(Controller):
         Creates a new file to capture scan data in when set to true
         Closes file when set to false
         """
+        calibration_subcontroller = self.sub_controllers["Calibration"]
+        assert isinstance(calibration_subcontroller, CalibrationSubcontroller)
+        wavelengths = np.array(
+            calibration_subcontroller.get_pixel_wavelengths(self.scan_data_length)
+        )
+
         if capture:
-            self.file_builder.create_file(self.file_path.get(), self.file_name.get())
+            self.file_builder.create_file(
+                self.file_path.get(), self.file_name.get(), wavelengths
+            )
         else:
             self.file_builder.close_file()
 
