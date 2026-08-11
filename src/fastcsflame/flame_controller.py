@@ -81,6 +81,13 @@ class FlameController(Controller):
         self.scan_data = AttrR(
             Waveform(int, shape=(scan_data_length,)),
             io_ref=SpectrometerScanIORef(self.spec_tel_obj),
+            description="""
+                Graphical view of spectra intensities
+                NOTE: x axis values do NOT represent wavelengths
+                To identify wavelengths see TabularScanData PV OR check output file
+                x value of a recorded intensity represents the column of that intensity
+                in scan data table
+            """,
         )
 
         self.capture = AttrRW(Bool(), initial_value=False)
