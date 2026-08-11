@@ -49,8 +49,6 @@ class FlameController(Controller):
         mount_path: str = "/",
         default_file_path: str = "dls/b21/data",
         default_file_name: str = "data",
-        lowest_wavelength=190,
-        highest_wavelength=1100,
         scan_data_length=2044,
     ):
         """
