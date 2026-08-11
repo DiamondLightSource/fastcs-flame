@@ -95,6 +95,8 @@ class SpectrometerTelecommunicator:
                 self.socket_obj.close()
             raise e
 
+        await self._set_ascii_mode()
+
         self.connected = True
 
         if self.disconnect_listen_task is None:
@@ -150,6 +152,28 @@ class SpectrometerTelecommunicator:
                 + f"Expected connection message: {TELNET_CONNECTION_MESSAGE} "
                 + f"recieved: {connection_message}"
             )
+
+    async def _set_ascii_mode(self):
+
+        # Query mode
+        response_raw = await self._send_query("?B")
+
+        # Binary responses to query mode take up 3 bytes exactly
+        # Means the response is not in binary
+        if len(response_raw) != 3:
+            binary_mode_value = int(self._extract_response(response_raw))
+            if binary_mode_value != 0:
+                print("raise error")
+            # Were in ascii mode and the binary mode query returned false
+            return
+
+        # First bit should be acknowledgement
+        if response_raw[0] != b"\x06":
+            print("raise error")
+
+        # Convert to ascii mode
+        ascii_mode_response = self._extract_response(await self._send_query("aA"))
+        assert ascii_mode_response == ""
 
     async def _listen_for_disconnection(self):
         """
