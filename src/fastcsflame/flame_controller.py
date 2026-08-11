@@ -3,7 +3,7 @@ import asyncio
 import numpy as np
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import Controller
-from fastcs.datatypes import Bool, String, Waveform
+from fastcs.datatypes import Bool, String, Table, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
 
@@ -30,6 +30,7 @@ class FlameController(Controller):
     connected: AttrR[bool]
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
+    scan_data_table: AttrR[np.ndarray]
 
     capture: AttrRW[bool]
     # Where h5 files will be saved within the mounted directory
@@ -38,6 +39,8 @@ class FlameController(Controller):
     file_name: AttrRW[str]
 
     scan_in_progress: AttrR[bool]
+
+    scan_data_length: int
 
     def __init__(
         self,
@@ -70,6 +73,9 @@ class FlameController(Controller):
             ]
         )
 
+        self.scan_data_length = scan_data_length
+
+        self.scan_data_length = scan_data_length
         self.connected = AttrR(Bool())
 
         self.spec_tel_obj = SpecTel(ip, port)
@@ -79,7 +85,7 @@ class FlameController(Controller):
         )
 
         self.scan_data = AttrR(
-            Waveform(int, shape=(scan_data_length,)),
+            Waveform(int, shape=(self.scan_data_length,)),
             io_ref=SpectrometerScanIORef(self.spec_tel_obj),
             description="""
                 Graphical view of spectra intensities
@@ -89,6 +95,10 @@ class FlameController(Controller):
                 in scan data table
             """,
         )
+        self.scan_data_table = AttrR(
+            Table([("intensities", np.int64), ("wavelengths", np.float64)])
+        )
+        self.scan_data.add_on_update_callback(self.update_scan_data_table)
 
         self.capture = AttrRW(Bool(), initial_value=False)
         self.capture.add_on_update_callback(self.on_capture_change)
@@ -104,6 +114,19 @@ class FlameController(Controller):
         self.add_sub_controller(
             "Calibration", CalibrationSubcontroller(self.spec_tel_obj)
         )
+
+    async def update_scan_data_table(self, scan_data: np.ndarray):
+        calibration_subcontroller = self.sub_controllers["Calibration"]
+        assert isinstance(calibration_subcontroller, CalibrationSubcontroller)
+        wavelengths = calibration_subcontroller.get_pixel_wavelengths(
+            self.scan_data_length
+        )
+        data = np.array(
+            [(scan_data[i], wavelengths[i]) for i in range(self.scan_data_length)],
+            dtype=[("intensities", np.int64), ("wavelengths", np.float64)],
+        )
+
+        await self.scan_data_table.update(data)
 
     async def connect(self):
         await super().connect()
