@@ -154,6 +154,9 @@ class SpectrometerTelecommunicator:
             )
 
     async def _set_ascii_mode(self):
+        """
+        Converts spectrometer to ascii communication mode if its not already using it
+        """
 
         # Query mode
         response_raw = await self._send_query("?B")
