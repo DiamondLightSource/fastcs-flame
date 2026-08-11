@@ -156,6 +156,11 @@ class SpectrometerTelecommunicator:
     async def _set_ascii_mode(self):
         """
         Converts spectrometer to ascii communication mode if its not already using it
+            raises
+                ValueError OR UnexpectedResponseError
+                    (when mode query doesnt respond as expected)
+                AssertionError
+                    (when conversion response is not as expected)
         """
 
         # Query mode
@@ -166,13 +171,21 @@ class SpectrometerTelecommunicator:
         if len(response_raw) != 3:
             binary_mode_value = int(self._extract_response(response_raw))
             if binary_mode_value != 0:
-                print("raise error")
+                raise UnexpectedResponseError(
+                    "Device gave unexpected response to communication mode query "
+                    + "expected: 1 "
+                    + f"recieved: {binary_mode_value}"
+                )
             # Were in ascii mode and the binary mode query returned false
             return
 
         # First bit should be acknowledgement
         if response_raw[0] != b"\x06":
-            print("raise error")
+            raise UnexpectedResponseError(
+                "No acknowledgement recieved from mode query "
+                + "expected: \x06\x00\x01"
+                + f"recieved: {response_raw}"
+            )
 
         # Convert to ascii mode
         ascii_mode_response = self._extract_response(await self._send_query("aA"))
