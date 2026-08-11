@@ -100,16 +100,17 @@ class FlameController(Controller):
         await super().connect()
         try:
             await self.spec_tel_obj.connect()
-            await self.connected.update(True)
+        # May cause issues if spec_tel_obj is updated separately from this object
+        # Shouldnt happen due to compositional relationship
         except BaseException as e:
             logger.warning("Failed connection attempt")
             logger.warning(e)
-            await self.connected.update(False)
+        await self.connected.update(self.spec_tel_obj.connected)
 
     async def disconnect(self) -> None:
         await super().disconnect()
         await self.spec_tel_obj.disconnect()
-        await self.connected.update(False)
+        await self.connected.update(self.spec_tel_obj.connected)
 
     @command()
     async def single_scan(self):
