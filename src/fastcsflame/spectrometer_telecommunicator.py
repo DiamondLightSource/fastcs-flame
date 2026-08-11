@@ -8,7 +8,8 @@ from fastcs.logging import logger
 # Initial message recieved from a TelNet connection
 # We do NOT communicate using TelNet (we use raw IP sockets)
 # BUT we still expect this message when connecting to the device
-TELNET_ASCII_CONNECTION_MESSAGE = b"\xff\xfa,k\x0f\xff\xf0"
+# This message is independant of whether the device is in ascii or binary mode
+TELNET_CONNECTION_MESSAGE = b"\xff\xfa,k\x0f\xff\xf0"
 
 
 class UnexpectedResponseError(Exception):
@@ -143,10 +144,10 @@ class SpectrometerTelecommunicator:
                 self.socket_obj, self.recieve_buffer_size
             )
 
-        if connection_message != TELNET_ASCII_CONNECTION_MESSAGE:
+        if connection_message != TELNET_CONNECTION_MESSAGE:
             logger.warning(
                 "Unexpected connection message recieved: "
-                + f"Expected connection message: {TELNET_ASCII_CONNECTION_MESSAGE} "
+                + f"Expected connection message: {TELNET_CONNECTION_MESSAGE} "
                 + f"recieved: {connection_message}"
             )
 
