@@ -76,3 +76,12 @@ class CalibrationSubcontroller(Controller):
         await self.second_order_wcc.put(float(solutions[b]))
         await self.first_order_wcc.put(float(solutions[c]))
         await self.zero_order_wcc.put(float(solutions[d]))
+
+    def get_pixel_wavelengths(self, pixels):
+        return [
+            (self.third_order_wcc.get() * (i**3))
+            + (self.second_order_wcc.get() * (i**2))
+            + (self.first_order_wcc.get() * (i**1))
+            + (self.zero_order_wcc.get() * (i**0))
+            for i in range(pixels)
+        ]
