@@ -18,6 +18,8 @@ class DummySpectrometer:
     disconnect_after_time: int | None
     reconnect_after_time: int | None
 
+    waiting_for_connection: asyncio.Event
+
     def __init__(
         self,
         port: int,
@@ -41,6 +43,8 @@ class DummySpectrometer:
         self.disconnect_after_time = disconnect_after_time
         self.reconnect_after_time = reconnect_after_time
 
+        self.waiting_for_connection = asyncio.Event()
+
     async def run(
         self,
     ):
@@ -56,7 +60,11 @@ class DummySpectrometer:
 
         loop = asyncio.get_event_loop()
         # Do we also need to setblocking for connection??
+
+        self.waiting_for_connection.set()
+
         self.connection, address = await loop.sock_accept(self.server_socket)
+        self.waiting_for_connection.clear()
         self.connected = True
         # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
