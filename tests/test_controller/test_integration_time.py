@@ -2,9 +2,6 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
-
-# loguru_caplog is a fixture
-# Ruff is not picking this up and thinks it is unused
 from test_common import controller_and_mock_objects
 
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
