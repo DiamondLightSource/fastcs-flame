@@ -110,3 +110,32 @@ class SpectrometerScanIO(AttributeIO[np.ndarray, SpectrometerScanIORef]):
                 + f"\n{e.args[0]}"
                 + "\nScanData PV not updated"
             )
+
+
+@dataclass
+class LampActiveIORef(AttributeIORef):
+    """
+    Reference for lamp attribute on a FastCS controller
+    """
+
+    spec_tel_obj: SpecTel
+
+    def __init__(self, spec_tel_obj: SpecTel):
+        super().__init__(update_period=ONCE)
+
+        self.spec_tel_obj = spec_tel_obj
+
+
+class LampActiveIO(AttributeIO[bool, LampActiveIORef]):
+    """
+    IO for lamp attributes on a FastCS controller
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    async def send(self, attr: AttrW[bool, LampActiveIORef], value: bool):
+        """
+        Updates lamp active value on controller
+        """
+        await attr.io_ref.spec_tel_obj.set_lamp(value)

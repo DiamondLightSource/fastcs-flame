@@ -24,7 +24,7 @@ class FlameController(Controller):
 
     spec_tel_obj: SpecTel
     file_builder: FileBuilder
-    connected: AttrR[bool, DummyBoolIORef]
+    connected: AttrR[bool]
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
 
@@ -67,7 +67,7 @@ class FlameController(Controller):
             ]
         )
 
-        self.connected = AttrR(Bool(), io_ref=DummyBoolIORef(False))
+        self.connected = AttrR(Bool())
 
         self.spec_tel_obj = SpecTel(ip, port)
         self.file_builder = FileBuilder(
