@@ -1,15 +1,15 @@
 from collections.abc import Awaitable, Callable
 
-from fastcs.attributes import AttrRW
+from fastcs.attributes import AttrRW, AttrW
 from fastcs.controllers import Controller
 from fastcs.datatypes import Bool, Int
 from fastcs.methods.command import command
 
 from fastcsflame.flame_controller_attributes import (
-    DummyBoolIO,
-    DummyBoolIORef,
     IntegrationTimeIO,
     IntegrationTimeIORef,
+    LampActiveIO,
+    LampActiveIORef,
 )
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
@@ -18,7 +18,7 @@ from fastcsflame.spectrometer_telecommunicator import (
 
 class AdvancedSubcontroller(Controller):
     integration_time: AttrRW[int, IntegrationTimeIORef]
-    lamp: AttrRW[bool, DummyBoolIORef]
+    lamp: AttrW[bool, LampActiveIORef]
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class AdvancedSubcontroller(Controller):
         connect_method: Callable[[], Awaitable[None]],
         disconnect_method: Callable[[], Awaitable[None]],
     ):
-        super().__init__(ios=[IntegrationTimeIO(), DummyBoolIO()])
+        super().__init__(ios=[IntegrationTimeIO(), LampActiveIO()])
         self.connect_method = connect_method
         self.disconnect_method = disconnect_method
 
@@ -34,11 +34,7 @@ class AdvancedSubcontroller(Controller):
         self.integration_time = AttrRW(
             Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
         )
-        self.lamp = AttrRW(Bool(), io_ref=DummyBoolIORef(True))
-        self.lamp.add_on_update_callback(self.lamp_change)
-
-    async def lamp_change(self, new_lamp_status: bool):
-        await self.spec_tel_obj.set_lamp(new_lamp_status)
+        self.lamp = AttrW(Bool(), io_ref=LampActiveIORef(spec_tel_obj))
 
     @command()
     async def force_connect(self):
