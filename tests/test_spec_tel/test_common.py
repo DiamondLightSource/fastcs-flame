@@ -28,10 +28,10 @@ async def close_non_blocking_socket(socket_obj: socket | None):
 
 
 def start_dummy_spectrometer(
-    port: int, dummy_spec_obj: DummySpectrometer | None = None
+    port: int, dummy_spec_obj: DummySpectrometer | None = None, write_pipe=None
 ):
     if dummy_spec_obj is None:
-        dummy_spec_obj = DummySpectrometer(port)
+        dummy_spec_obj = DummySpectrometer(port, pipe=write_pipe)
     asyncio.run(run_dummy_spectrometer(dummy_spec_obj))
 
 
@@ -44,7 +44,7 @@ async def run_dummy_spectrometer(dummy_spectrometer_object: DummySpectrometer):
 
 
 @asynccontextmanager
-async def run_spec_tel_object(
+async def start_spec_tel_object(
     spec_tel_obj: SpecTel | None = None, ip="127.0.0.1", port=7016
 ):
     if spec_tel_obj is None:
@@ -63,13 +63,20 @@ async def start_connection(
     ip="127.0.0.1",
     port=7016,
 ):
+    read_pipe_end, write_pipe_end = mp.Pipe(False)
+
     context = mp.get_context()
     process = context.Process(
-        target=start_dummy_spectrometer, args=[port, dummy_spec_obj]
+        target=start_dummy_spectrometer,
+        args=[port, dummy_spec_obj],
+        kwargs={"write_pipe": write_pipe_end},
     )
     process.start()
 
-    async with run_spec_tel_object(
+    recieved_message = read_pipe_end.recv()
+    assert recieved_message == "accepting"
+
+    async with start_spec_tel_object(
         spec_tel_obj=spec_tel_obj, ip=ip, port=port
     ) as spec_tel_obj:
-        yield dummy_spec_obj, spec_tel_obj
+        yield dummy_spec_obj, spec_tel_obj, read_pipe_end

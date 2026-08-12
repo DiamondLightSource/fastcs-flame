@@ -12,7 +12,7 @@ class DummySpectrometer:
     scan_data_length = 2044
     chunk_size: int = 1024
 
-    def __init__(self, port: int, bind=True):
+    def __init__(self, port: int, bind=True, pipe=None):
         """
         Binds a socket to a port on localhost (127.0.0.1)
         port: Port to bind socket to
@@ -23,7 +23,16 @@ class DummySpectrometer:
         self.last_scan_data = []
         self.randomise_scan_data()
 
-    async def start(self, startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0"):
+        self.pipe = None
+        if pipe is not None:
+            self.pipe = pipe
+
+    def pipe_message(self, message: str):
+        if self.pipe is None:
+            return
+        self.pipe.send(message)
+
+    async def run(self, startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0"):
         """
         Starts the server listening process
         This will respond to incomming requests until a "" is sent
@@ -33,6 +42,8 @@ class DummySpectrometer:
         self.server_socket.listen(1)
         # Allows us to use async code with sockets
         self.server_socket.setblocking(False)
+
+        self.pipe_message("accepting")
 
         loop = asyncio.get_event_loop()
         # Do we also need to setblocking for connection??
