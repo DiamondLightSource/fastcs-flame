@@ -2,6 +2,8 @@ import asyncio
 import random
 from socket import socket
 
+TELNET_STARTUP_MESSAGE = b"\xff\xfa,k\x0f\xff\xf0"
+
 
 class DummySpectrometer:
     server_socket: socket
@@ -36,7 +38,7 @@ class DummySpectrometer:
             return
         self.pipe.send(message)
 
-    async def run(self, startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0"):
+    async def run(self):
         """
         Starts the server listening process
         This will respond to incomming requests until a "" is sent
@@ -55,7 +57,7 @@ class DummySpectrometer:
         self.connected = True
         # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
-        self.connection.send(startup_message)
+        self.connection.send(TELNET_STARTUP_MESSAGE)
 
         # Recieve and process messages until the connection is closed
         while self.connected:
