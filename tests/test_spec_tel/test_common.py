@@ -3,6 +3,8 @@ import multiprocessing as mp
 from contextlib import asynccontextmanager
 from socket import socket
 
+import pytest
+
 from dummy_spectrometer import DummySpectrometer
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
@@ -79,4 +81,11 @@ async def start_connection(
     async with start_spec_tel_object(
         spec_tel_obj=spec_tel_obj, ip=ip, port=port
     ) as spec_tel_obj:
-        yield dummy_spec_obj, spec_tel_obj, read_pipe_end
+        yield (dummy_spec_obj, spec_tel_obj, read_pipe_end)
+
+
+@pytest.mark.asyncio
+async def test_start_connection():
+
+    async with start_connection() as (_, spec_tel_obj, _):
+        assert spec_tel_obj.connected
