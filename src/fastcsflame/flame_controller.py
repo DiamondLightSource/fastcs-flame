@@ -191,3 +191,8 @@ class FlameController(Controller):
         # PVs are replaced after connect() code is run
         # So state updates in the initial connect() code will not be realised
         asyncio.create_task(self.update_connected())
+
+        advanced_subcontroller = self.sub_controllers["Advanced"]
+        assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+        # Turn lamp (incase it wasnt already)
+        asyncio.create_task(advanced_subcontroller.lamp.put(True))
