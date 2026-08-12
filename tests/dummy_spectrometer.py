@@ -11,6 +11,7 @@ class DummySpectrometer:
     last_scan_data: list[int]
     scan_data_length = 2044
     chunk_size: int = 1024
+    connected: bool
 
     def __init__(self, port: int, bind=True, pipe=None):
         """
@@ -22,6 +23,9 @@ class DummySpectrometer:
             self.server_socket.bind(("", port))
         self.last_scan_data = []
         self.randomise_scan_data()
+
+        self.connected = False
+        self.connection = None
 
         self.pipe = None
         if pipe is not None:
@@ -48,17 +52,30 @@ class DummySpectrometer:
         loop = asyncio.get_event_loop()
         # Do we also need to setblocking for connection??
         self.connection, address = await loop.sock_accept(self.server_socket)
+        self.connected = True
         # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
         self.connection.send(startup_message)
 
         # Recieve and process messages until the connection is closed
-        while True:
+        while self.connected:
             raw_last_message = await loop.sock_recv(self.connection, 1024)
             if raw_last_message.decode("ascii") == "":
                 return
             response = await self._handle_request(raw_last_message)
             self._respond_in_chunks(self.connection, response)
+
+    async def disconnect(self):
+        if self.connection is None:
+            return
+        self.connection.close()
+        self.connection = None
+        # This method is quite crude but it seems to have a high success rate
+        # Ideally you would run recv from the socket until a b'' is recieved
+        # This would also require a timeout incase nothing is ever recieved
+        # And im not sure what you would even do in this case when you already
+        # tried to close it??
+        await asyncio.sleep(0.5)
 
     def _respond_in_chunks(self, connection: socket, response: bytes):
         """
