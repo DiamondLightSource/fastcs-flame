@@ -1,5 +1,4 @@
 import asyncio
-import multiprocessing as mp
 from contextlib import asynccontextmanager
 
 import pytest
@@ -10,22 +9,18 @@ from fastcsflame.spectrometer_telecommunicator import (
 )
 
 DEFAULT_IP = "127.0.0.1"
-DEFAULT_PORT = 7016
+DEFAULT_PORT = 7023
 
 
-def start_dummy_spectrometer(
-    port: int, dummy_spec_obj: DummySpectrometer | None = None, write_pipe=None
+async def start_dummy_spectrometer(
+    dummy_spec_obj: DummySpectrometer | None = None, port: int = DEFAULT_PORT
 ):
     if dummy_spec_obj is None:
-        dummy_spec_obj = DummySpectrometer(port, pipe=write_pipe)
-    asyncio.run(run_dummy_spectrometer(dummy_spec_obj))
-
-
-async def run_dummy_spectrometer(dummy_spectrometer_object: DummySpectrometer):
+        dummy_spec_obj = DummySpectrometer(port)
     try:
-        await dummy_spectrometer_object.run()
+        await dummy_spec_obj.run()
     finally:
-        await dummy_spectrometer_object.disconnect()
+        await dummy_spec_obj.disconnect()
 
 
 @asynccontextmanager
@@ -48,27 +43,21 @@ async def start_connection(
     ip=DEFAULT_IP,
     port=DEFAULT_PORT,
 ):
-    read_pipe_end, write_pipe_end = mp.Pipe(False)
 
-    context = mp.get_context()
-    process = context.Process(
-        target=start_dummy_spectrometer,
-        args=[port],
-        kwargs={"dummy_spec_obj": dummy_spec_obj, "write_pipe": write_pipe_end},
+    asyncio.create_task(
+        start_dummy_spectrometer(dummy_spec_obj=dummy_spec_obj, port=port)
     )
-    process.start()
 
-    recieved_message = read_pipe_end.recv()
-    assert recieved_message == "accepting"
+    await asyncio.sleep(3)
 
     async with start_spec_tel_object(
         spec_tel_obj=spec_tel_obj, ip=ip, port=port
     ) as spec_tel_obj:
-        yield (dummy_spec_obj, spec_tel_obj, read_pipe_end)
+        yield (dummy_spec_obj, spec_tel_obj)
 
 
 @pytest.mark.asyncio
 async def test_start_connection():
 
-    async with start_connection() as (_, spec_tel_obj, _):
+    async with start_connection() as (_, spec_tel_obj):
         assert spec_tel_obj.connected

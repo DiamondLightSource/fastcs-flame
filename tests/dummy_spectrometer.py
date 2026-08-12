@@ -15,7 +15,16 @@ class DummySpectrometer:
     chunk_size: int = 1024
     connected: bool
 
-    def __init__(self, port: int, bind=True, pipe=None):
+    disconnect_after_time: int | None
+    reconnect_after_time: int | None
+
+    def __init__(
+        self,
+        port: int,
+        bind=True,
+        disconnect_after_time: int | None = None,
+        reconnect_after_time: int | None = None,
+    ):
         """
         Binds a socket to a port on localhost (127.0.0.1)
         port: Port to bind socket to
@@ -29,16 +38,12 @@ class DummySpectrometer:
         self.connected = False
         self.connection = None
 
-        self.pipe = None
-        if pipe is not None:
-            self.pipe = pipe
+        self.disconnect_after_time = disconnect_after_time
+        self.reconnect_after_time = reconnect_after_time
 
-    def pipe_message(self, message: str):
-        if self.pipe is None:
-            return
-        self.pipe.send(message)
-
-    async def run(self, disconnect_after_time=None, reconnect_after_time=None):
+    async def run(
+        self,
+    ):
         """
         Starts the server listening process
         This will respond to incomming requests until a "" is sent
@@ -49,8 +54,6 @@ class DummySpectrometer:
         # Allows us to use async code with sockets
         self.server_socket.setblocking(False)
 
-        self.pipe_message("accepting")
-
         loop = asyncio.get_event_loop()
         # Do we also need to setblocking for connection??
         self.connection, address = await loop.sock_accept(self.server_socket)
@@ -59,16 +62,14 @@ class DummySpectrometer:
         # (indicates spectrometer is in ascii mode, not binary)
         self.connection.send(TELNET_STARTUP_MESSAGE)
 
-        if disconnect_after_time is not None:
-            # Start ephemeral process
-            asyncio.create_task(
-                self.ephemeral_process(disconnect_after_time, reconnect_after_time)
-            )
+        # Start ephemeral process
+        # asyncio.create_task(self.ephemeral_process())
 
         # Recieve and process messages until the connection is closed
         while self.connected:
             raw_last_message = await loop.sock_recv(self.connection, 1024)
             if raw_last_message.decode("ascii") == "":
+                await self.disconnect()
                 return
             response = await self._handle_request(raw_last_message)
             self._respond_in_chunks(self.connection, response)
@@ -78,21 +79,23 @@ class DummySpectrometer:
             return
         self.connection.close()
         self.connection = None
+        self.server_socket.close()
         # This method is quite crude but it seems to have a high success rate
         # Ideally you would run recv from the socket until a b'' is recieved
         # This would also require a timeout incase nothing is ever recieved
         # And im not sure what you would even do in this case when you already
         # tried to close it??
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(3)
 
-    async def ephemeral_process(self, disconnect_after_time, reconnect_after_time=None):
-        await asyncio.sleep(disconnect_after_time)
+    async def ephemeral_process(self):
+        if self.disconnect_after_time is not None:
+            await asyncio.sleep(self.disconnect_after_time)
         await self.disconnect()
-        self.pipe_message("disconnected")
-        if reconnect_after_time is None:
-            return
-        await asyncio.sleep(disconnect_after_time)
-        await self.run(disconnect_after_time=None, reconnect_after_time=None)
+        if self.reconnect_after_time is not None:
+            await asyncio.sleep(self.reconnect_after_time)
+            self.disconnect_after_time = None
+            self.reconnect_after_time = None
+            await self.run()
 
     def _respond_in_chunks(self, connection: socket, response: bytes):
         """
