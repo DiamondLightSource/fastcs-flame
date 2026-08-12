@@ -72,6 +72,9 @@ async def controller_and_mock_objects(
     if file_builder_mock is None:
         file_builder_mock = Mock()
     error_queue: list[BaseException] = []
+
+    # Would be nice to do these context managers manually
+    # Scopes could easily stack up with more objects
     with patch(
         "fastcsflame.flame_controller.SpecTel",
         return_value=spec_tel_mock,
