@@ -9,6 +9,9 @@ from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
 
+DEFAULT_IP = "127.0.0.1"
+DEFAULT_PORT = 7016
+
 
 def start_dummy_spectrometer(
     port: int, dummy_spec_obj: DummySpectrometer | None = None, write_pipe=None
@@ -27,7 +30,7 @@ async def run_dummy_spectrometer(dummy_spectrometer_object: DummySpectrometer):
 
 @asynccontextmanager
 async def start_spec_tel_object(
-    spec_tel_obj: SpecTel | None = None, ip="127.0.0.1", port=7016
+    spec_tel_obj: SpecTel | None = None, ip=DEFAULT_IP, port=DEFAULT_PORT
 ):
     if spec_tel_obj is None:
         spec_tel_obj = SpecTel(ip, port)
@@ -42,16 +45,16 @@ async def start_spec_tel_object(
 async def start_connection(
     dummy_spec_obj: DummySpectrometer | None = None,
     spec_tel_obj: SpecTel | None = None,
-    ip="127.0.0.1",
-    port=7016,
+    ip=DEFAULT_IP,
+    port=DEFAULT_PORT,
 ):
     read_pipe_end, write_pipe_end = mp.Pipe(False)
 
     context = mp.get_context()
     process = context.Process(
         target=start_dummy_spectrometer,
-        args=[port, dummy_spec_obj],
-        kwargs={"write_pipe": write_pipe_end},
+        args=[port],
+        kwargs={"dummy_spec_obj": dummy_spec_obj, "write_pipe": write_pipe_end},
     )
     process.start()
 
