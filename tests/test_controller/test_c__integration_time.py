@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 from test_c_common import controller_and_mock_objects
 
+from fastcsflame.advanced_subcontroller import AdvancedSubcontroller
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
 INITIAL_DUMMY_INTEGRATION_TIME = 10
@@ -32,7 +33,11 @@ async def test_initialisation(loguru_caplog):
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
     # Make sure initial integration time matches spec tel object
-    assert flame_controller.integration_time.get() == spec_tel_mock.integration_time
+    advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
+    assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+    assert (
+        advanced_subcontroller.integration_time.get() == spec_tel_mock.integration_time
+    )
 
 
 @pytest.mark.asyncio
@@ -61,7 +66,9 @@ async def test_set_integration_time(loguru_caplog):
         _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
-    await flame_controller.integration_time.put(SET_DUMMY_INTEGRATION_TIME)
+    advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
+    assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+    await advanced_subcontroller.integration_time.put(SET_DUMMY_INTEGRATION_TIME)
     # Make sure new integration time matches spec tel object
     assert spec_tel_mock.integration_time == SET_DUMMY_INTEGRATION_TIME
 
@@ -117,6 +124,8 @@ async def test_bad_integration_time_set(loguru_caplog):
         _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
-    await flame_controller.integration_time.put(SET_DUMMY_INTEGRATION_TIME)
+    advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
+    assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+    await advanced_subcontroller.integration_time.put(SET_DUMMY_INTEGRATION_TIME)
 
     assert "UnexpectedResponseError" in loguru_caplog.text
