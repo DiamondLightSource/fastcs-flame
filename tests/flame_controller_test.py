@@ -1,30 +1,14 @@
 import asyncio
-
-# import multiprocessing
-from collections.abc import Generator
 from unittest.mock import AsyncMock, Mock, patch
 
 import numpy as np
 import pytest
 from fastcs.launch import FastCS
-from fastcs.logging import configure_logging, logger
-from pytest import LogCaptureFixture
 
 from fastcsflame.flame_controller import FlameController
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
 # from spectrometer_telecommunicator_test import setup_dummy_spectrometer
-
-
-@pytest.fixture
-def loguru_caplog(caplog) -> Generator[LogCaptureFixture]:
-    """
-    Suggested FastCS fixture for capturing log output of a controller
-    """
-    configure_logging()
-    handler_id = logger.add(caplog.handler, format="{message}", level="TRACE")
-    yield caplog
-    logger.remove(handler_id)
 
 
 async def serve_fastcs(fastcs_instance: FastCS, error_queue: list[BaseException]):
