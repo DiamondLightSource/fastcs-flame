@@ -45,6 +45,7 @@ async def controller_and_mock_objects(
     spec_tel_mock: AsyncMock | None = None,
     file_builder_mock: Mock | None = None,
     timeout: int = 11,
+    start_poll_period: int = 1,
 ) -> tuple[asyncio.Task, FlameController, AsyncMock, Mock, list[BaseException]]:
     """
     Creates a flame controller and starts FastCS with mock objects
@@ -55,6 +56,7 @@ async def controller_and_mock_objects(
         object with. On None a black mock object will be used
     timeout: Time to wait after attempting to start FastCS until raising
         a timeout exception (unless launch is successful)
+    start_poll_period: The time between each poll to test if FastCS has started
     returns a tuple of:
         The task running the FastCS serve method
         The created controller object
@@ -79,8 +81,8 @@ async def controller_and_mock_objects(
             return_value=file_builder_mock,
         ):
             flame_controller = FlameController(
-                "172.23.91.5",
-                7016,
+                "",
+                0,
                 mount_path="",
                 default_file_name="",
             )
@@ -98,7 +100,7 @@ async def controller_and_mock_objects(
                         file_builder_mock,
                         error_queue,
                     )
-                await asyncio.sleep(1)
+                await asyncio.sleep(start_poll_period)
             raise TimeoutError
 
 
