@@ -110,8 +110,9 @@ class SpectrometerTelecommunicator:
         if self.socket_obj is None:
             return
         loop = asyncio.get_event_loop()
+        # NOTE: If you get an OSError here its most likely because you closed the
+        # server socket as soon as it opened
         message = await loop.sock_recv(self.socket_obj, self.recieve_buffer_size)
-
         if message == b"":
             await self.disconnect()
         else:
