@@ -21,10 +21,8 @@ async def start_dummy_spectrometer(dummy_spec_obj: DummySpectrometer):
 
 @asynccontextmanager
 async def start_spec_tel_object(
-    spec_tel_obj: SpecTel | None = None, ip=DEFAULT_IP, port=DEFAULT_PORT
+    spec_tel_obj: SpecTel, ip=DEFAULT_IP, port=DEFAULT_PORT
 ):
-    if spec_tel_obj is None:
-        spec_tel_obj = SpecTel(ip, port)
     try:
         await spec_tel_obj.connect()
         yield spec_tel_obj
@@ -42,6 +40,8 @@ async def start_connection(
 
     if dummy_spec_obj is None:
         dummy_spec_obj = DummySpectrometer(port)
+    if spec_tel_obj is None:
+        spec_tel_obj = SpecTel(ip, port)
 
     asyncio.create_task(start_dummy_spectrometer(dummy_spec_obj))
 
