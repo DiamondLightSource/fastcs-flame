@@ -15,17 +15,12 @@ class DummySpectrometer:
     chunk_size: int = 1024
     connected: bool
 
-    disconnect_after_time: int | None
-    reconnect_after_time: int | None
-
     waiting_for_connection: asyncio.Event
 
     def __init__(
         self,
         port: int,
         bind=True,
-        disconnect_after_time: int | None = None,
-        reconnect_after_time: int | None = None,
     ):
         """
         Binds a socket to a port on localhost (127.0.0.1)
@@ -39,9 +34,6 @@ class DummySpectrometer:
 
         self.connected = False
         self.connection = None
-
-        self.disconnect_after_time = disconnect_after_time
-        self.reconnect_after_time = reconnect_after_time
 
         self.waiting_for_connection = asyncio.Event()
 
@@ -94,16 +86,6 @@ class DummySpectrometer:
         # And im not sure what you would even do in this case when you already
         # tried to close it??
         await asyncio.sleep(3)
-
-    async def ephemeral_process(self):
-        if self.disconnect_after_time is not None:
-            await asyncio.sleep(self.disconnect_after_time)
-        await self.disconnect()
-        if self.reconnect_after_time is not None:
-            await asyncio.sleep(self.reconnect_after_time)
-            self.disconnect_after_time = None
-            self.reconnect_after_time = None
-            await self.run()
 
     def _respond_in_chunks(self, connection: socket, response: bytes):
         """
