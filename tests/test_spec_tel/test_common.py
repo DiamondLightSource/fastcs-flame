@@ -52,5 +52,5 @@ async def start_connection(
 @pytest.mark.asyncio
 async def test_start_connection():
 
-    async with start_connection() as (_, spec_tel_obj):
-        assert spec_tel_obj.connected
+    async with start_connection() as (dummy_spec_obj, _):
+        assert dummy_spec_obj.connected
