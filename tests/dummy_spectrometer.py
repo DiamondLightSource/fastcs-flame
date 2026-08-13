@@ -17,6 +17,9 @@ class DummySpectrometer:
 
     waiting_for_connection: asyncio.Event
 
+    port: int
+    bind: bool
+
     def __init__(
         self,
         port: int,
@@ -26,9 +29,6 @@ class DummySpectrometer:
         Binds a socket to a port on localhost (127.0.0.1)
         port: Port to bind socket to
         """
-        if bind:
-            self.server_socket = socket()
-            self.server_socket.bind(("", port))
         self.last_scan_data = []
         self.randomise_scan_data()
 
@@ -37,6 +37,9 @@ class DummySpectrometer:
 
         self.waiting_for_connection = asyncio.Event()
 
+        self.port = port
+        self.bind = bind
+
     async def run(
         self,
     ):
@@ -44,6 +47,9 @@ class DummySpectrometer:
         Starts the server listening process
         This will respond to incomming requests until a "" is sent
         """
+        self.server_socket = socket()
+        if self.bind:
+            self.server_socket.bind(("", self.port))
 
         # Listen for 1 connection
         self.server_socket.listen(1)
