@@ -72,3 +72,13 @@ async def test_reconnection():
         assert spec_tel_obj.connected
 
         await asyncio.sleep(DEFAULT_SLEEP_TIME)
+
+
+@pytest.mark.asyncio
+async def test_device_already_connected():
+    async with start_connection() as (_, _):
+        spec_tel_obj_2 = SpecTel(DEFAULT_IP, DEFAULT_PORT)
+
+        with pytest.raises(TimeoutError):
+            async with start_spec_tel_object(spec_tel_obj=spec_tel_obj_2):
+                pass
