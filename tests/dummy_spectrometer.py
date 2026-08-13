@@ -1,5 +1,6 @@
 import asyncio
 import random
+import socket as s
 from socket import socket
 
 TELNET_STARTUP_MESSAGE = b"\xff\xfa,k\x0f\xff\xf0"
@@ -48,6 +49,7 @@ class DummySpectrometer:
         This will respond to incomming requests until a "" is sent
         """
         self.server_socket = socket()
+        self.server_socket.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
         if self.bind:
             self.server_socket.bind(("", self.port))
 
