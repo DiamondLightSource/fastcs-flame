@@ -34,6 +34,8 @@ class SpectrometerTelecommunicator:
     socket_obj: socket | None
     connected: bool
 
+    disconnect_task: asyncio.Task | None
+
     def __init__(
         self, ip: str, port: int, recieve_buffer_size: int = 1024, timeout: float = 15.0
     ):
@@ -54,6 +56,7 @@ class SpectrometerTelecommunicator:
         self.timeout = timeout
         self.socket_obj = None
         self.connected = False
+        self.disconnect_task = None
 
     async def connect(self):
         """
@@ -101,6 +104,19 @@ class SpectrometerTelecommunicator:
                 + f"recieved: {connection_message}"
             )
 
+        self.disconnect_task = asyncio.create_task(self.listen_for_disconnection())
+
+    async def listen_for_disconnection(self):
+        if self.socket_obj is None:
+            return
+        loop = asyncio.get_event_loop()
+        message = await loop.sock_recv(self.socket_obj, self.recieve_buffer_size)
+
+        if message == b"":
+            await self.disconnect()
+        else:
+            print(f"Unexpected message from device: {message}")
+
     async def disconnect(self):
         if self.socket_obj is None:
             # Dont need to throw error in this case
@@ -139,6 +155,10 @@ class SpectrometerTelecommunicator:
                 + "Call connect() method first"
             )
 
+        if self.disconnect_task is not None:
+            self.disconnect_task.cancel()
+            self.disconnect_task = None
+
         self.socket_obj.send(query.encode("ascii"))
 
         response_raw: bytes = b""
@@ -161,7 +181,9 @@ class SpectrometerTelecommunicator:
             # This will throw an error if the connection is still down
             await self.restart_connection()
             # Try sending query again
-            await self._send_query(query, end_signal=end_signal)
+            return await self._send_query(query, end_signal=end_signal)
+
+        self.disconnect_task = asyncio.create_task(self.listen_for_disconnection())
 
         return response_raw
 
