@@ -12,7 +12,7 @@ DEFAULT_IP = "127.0.0.1"
 DEFAULT_PORT = 7023
 
 
-async def start_dummy_spectrometer(dummy_spec_obj: DummySpectrometer):
+async def run_dummy_spectrometer(dummy_spec_obj: DummySpectrometer):
     try:
         await dummy_spec_obj.run()
     finally:
@@ -20,9 +20,7 @@ async def start_dummy_spectrometer(dummy_spec_obj: DummySpectrometer):
 
 
 @asynccontextmanager
-async def start_spec_tel_object(
-    spec_tel_obj: SpecTel, ip=DEFAULT_IP, port=DEFAULT_PORT
-):
+async def start_spec_tel_object(spec_tel_obj: SpecTel):
     try:
         await spec_tel_obj.connect()
         yield spec_tel_obj
@@ -43,13 +41,11 @@ async def start_connection(
     if spec_tel_obj is None:
         spec_tel_obj = SpecTel(ip, port)
 
-    asyncio.create_task(start_dummy_spectrometer(dummy_spec_obj))
+    asyncio.create_task(run_dummy_spectrometer(dummy_spec_obj))
 
     await dummy_spec_obj.waiting_for_connection.wait()
 
-    async with start_spec_tel_object(
-        spec_tel_obj=spec_tel_obj, ip=ip, port=port
-    ) as spec_tel_obj:
+    async with start_spec_tel_object(spec_tel_obj=spec_tel_obj):
         yield (dummy_spec_obj, spec_tel_obj)
 
 
