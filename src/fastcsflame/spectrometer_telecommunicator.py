@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import contextmanager
 from socket import socket
 
 from fastcs.logging import logger
@@ -34,7 +35,7 @@ class SpectrometerTelecommunicator:
     socket_obj: socket
     connected: bool
 
-    disconnect_task: asyncio.Task | None
+    disconnect_listen_task: asyncio.Task | None
 
     def __init__(
         self, ip: str, port: int, recieve_buffer_size: int = 1024, timeout: float = 15.0
@@ -55,7 +56,7 @@ class SpectrometerTelecommunicator:
         self.recieve_buffer_size = recieve_buffer_size
         self.timeout = timeout
         self.connected = False
-        self.disconnect_task = None
+        self.disconnect_listen_task = None
 
     async def connect(self):
         """
@@ -78,7 +79,9 @@ class SpectrometerTelecommunicator:
 
         self.connected = True
 
-        self.disconnect_task = asyncio.create_task(self.listen_for_disconnection())
+        self.disconnect_listen_task = asyncio.create_task(
+            self._listen_for_disconnection()
+        )
 
     async def _connect_socket(self):
         # TODO: Should check if socket_obj has been closed somehow
@@ -109,7 +112,7 @@ class SpectrometerTelecommunicator:
                 + f"recieved: {connection_message}"
             )
 
-    async def listen_for_disconnection(self):
+    async def _listen_for_disconnection(self):
         if not self.connected:
             return
         loop = asyncio.get_event_loop()
@@ -120,6 +123,19 @@ class SpectrometerTelecommunicator:
             await self.disconnect()
         else:
             print(f"Unexpected message from device: {message}")
+
+    @contextmanager
+    def pause_disconnect_listening(self):
+        # Raise an exception if its None??
+        if self.disconnect_listen_task is not None:
+            self.disconnect_listen_task.cancel()
+            self.disconnect_listen_task = None
+
+        yield
+
+        self.disconnect_listen_task = asyncio.create_task(
+            self._listen_for_disconnection()
+        )
 
     async def disconnect(self):
         if not self.connected:
@@ -156,29 +172,29 @@ class SpectrometerTelecommunicator:
                 + "Call connect() method first"
             )
 
-        if self.disconnect_task is not None:
-            self.disconnect_task.cancel()
-            self.disconnect_task = None
+        with self.pause_disconnect_listening():
+            self.socket_obj.send(query.encode("ascii"))
 
-        self.socket_obj.send(query.encode("ascii"))
+            response_raw = await self._listen_for_response(end_signal=end_signal)
 
-        response_raw = await self._listen_for_response(end_signal=end_signal)
-
-        # Means connection was broken at some point
-        if response_raw == b"":
-            # Try restarting connection
-            # This will throw an error if the connection is still down
-            await self.restart_connection()
-            # Try sending query again
-            return await self._send_query(query, end_signal=end_signal)
-
-        self.disconnect_task = asyncio.create_task(self.listen_for_disconnection())
+            # Means connection was broken at some point
+            if response_raw == b"":
+                # Try restarting connection
+                # This will throw an error if the connection is still down
+                await self.restart_connection()
+                # Try sending query again
+                return await self._send_query(query, end_signal=end_signal)
 
         return response_raw
 
     async def _listen_for_response(
         self, end_signal: bytes = b"\n\r> ", maximum_messages: int = 1000
     ):
+        # Disconnect listen task should alays be cancelled before running this method
+        # Cant do it inside the method as it may be too late
+        if self.disconnect_listen_task is not None:
+            print("raise exception")
+
         loop = asyncio.get_event_loop()
         if not self.connected:
             return b""
