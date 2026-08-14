@@ -74,6 +74,14 @@ class SpectrometerTelecommunicator:
             OSError
         """
 
+        await self._connect_socket()
+        await self._listen_for_connection_message()
+
+        self.connected = True
+
+        self.disconnect_task = asyncio.create_task(self.listen_for_disconnection())
+
+    async def _connect_socket(self):
         # TODO: Should check if socket_obj has been closed somehow
         if self.connected:
             raise AlreadyConnectedError("Connect method has already been run")
@@ -85,8 +93,10 @@ class SpectrometerTelecommunicator:
         async with asyncio.timeout(self.timeout):
             await loop.sock_connect(self.socket_obj, (self.ip, self.port))
 
-        self.connected = True
-
+    async def _listen_for_connection_message(self):
+        if self.socket_obj is None:
+            return
+        loop = asyncio.get_event_loop()
         # connection message is the initial message sent by the device when you connect
         # I'm not 100% sure what it means yet
         # But the socket needs to be cleared for the next message either way
@@ -96,15 +106,11 @@ class SpectrometerTelecommunicator:
                 self.socket_obj, self.recieve_buffer_size
             )
 
-        # TODO: Add a case for binary start up message too
-        # Maybe send signal to convert it ascii??
         if connection_message != TELNET_ASCII_CONNECTION_MESSAGE:
             raise UnexpectedResponseError(
                 "Expected connection message: b'\\xff\\xfa,k\\x0f\\xff\\xf0' "
                 + f"recieved: {connection_message}"
             )
-
-        self.disconnect_task = asyncio.create_task(self.listen_for_disconnection())
 
     async def listen_for_disconnection(self):
         if self.socket_obj is None:
