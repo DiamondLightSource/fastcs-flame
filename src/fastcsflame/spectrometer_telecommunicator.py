@@ -328,7 +328,10 @@ class SpectrometerTelecommunicator:
         returns scan data
         """
         scan_result_str = self._extract_response(await self._send_query("S"))
-        return self._scan_str_to_list(scan_result_str)
+        try:
+            return self._scan_str_to_list(scan_result_str)
+        except ValueError as e:
+            raise UnexpectedResponseError from e
 
     async def get_last_scan(self) -> list[int]:
         """
@@ -336,7 +339,10 @@ class SpectrometerTelecommunicator:
         returns scan data
         """
         scan_result_str = self._extract_response(await self._send_query("Z"))
-        return self._scan_str_to_list(scan_result_str)
+        try:
+            return self._scan_str_to_list(scan_result_str)
+        except ValueError as e:
+            raise UnexpectedResponseError from e
 
     @staticmethod
     def _scan_str_to_list(scan_result_str: str) -> list[int]:
@@ -352,8 +358,8 @@ class SpectrometerTelecommunicator:
         # get rid of the first 7 numbers and last 1
         #   as this is just meta data and handshakes
         # convert each one to an integer in a string comprehension
-        try:
-            data = [int(s) for s in scan_result_str.split(" ")[7:-1]]
-            return data
-        except ValueError as e:
-            raise UnexpectedResponseError from e
+        if len(scan_result_str.split(" ")) < 8:
+            raise ValueError
+        data = [int(s) for s in scan_result_str.split(" ")[7:-1]]
+        print(data)
+        return data
