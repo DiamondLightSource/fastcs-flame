@@ -98,7 +98,11 @@ class SpectrometerTelecommunicator:
         self.socket_obj.setblocking(False)
 
         async with asyncio.timeout(self.timeout):
-            await loop.sock_connect(self.socket_obj, (self.ip, self.port))
+            try:
+                await loop.sock_connect(self.socket_obj, (self.ip, self.port))
+            except (ConnectionRefusedError, ConnectionResetError) as e:
+                self.socket_obj.close()
+                raise e
 
     async def _listen_for_connection_message(self):
         loop = asyncio.get_event_loop()
