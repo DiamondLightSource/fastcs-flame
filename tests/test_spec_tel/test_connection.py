@@ -14,7 +14,6 @@ from dummy_spectrometer import DummySpectrometer
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
-from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
 DEFAULT_SLEEP_TIME = 2
 
@@ -41,12 +40,11 @@ async def test_bad_socket():
 
 
 @pytest.mark.asyncio
-async def test_bad_initial_connection_message():
+async def test_bad_initial_connection_message(loguru_caplog):
 
     with patch("dummy_spectrometer.TELNET_STARTUP_MESSAGE", b"\x15"):
-        with pytest.raises(UnexpectedResponseError):
-            async with start_connection() as (_, _):
-                pass
+        async with start_connection() as (_, _):
+            assert "Unexpected connection message recieved: " in loguru_caplog.text
 
 
 @pytest.mark.asyncio
