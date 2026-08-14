@@ -148,8 +148,6 @@ class SpectrometerTelecommunicator:
             TimeoutError
                 (when no response was recieved from the device)
         """
-        loop = asyncio.get_event_loop()
-
         if self.socket_obj is None:
             raise NotConnectedError(
                 "Object is not connected to spectrometer, no socket exists. "
@@ -162,19 +160,7 @@ class SpectrometerTelecommunicator:
 
         self.socket_obj.send(query.encode("ascii"))
 
-        response_raw: bytes = b""
-        last_response_raw_section: bytes = b""
-
-        # Keep on recieving information until a response section contains the end signal
-        while last_response_raw_section.rfind(end_signal) == -1:
-            async with asyncio.timeout(self.timeout):
-                last_response_raw_section = await loop.sock_recv(
-                    self.socket_obj, self.recieve_buffer_size
-                )
-            # Means connection has been broken
-            if last_response_raw_section == b"":
-                break
-            response_raw += last_response_raw_section
+        response_raw = await self._listen_for_response(end_signal=end_signal)
 
         # Means connection was broken at some point
         if response_raw == b"":
@@ -186,6 +172,32 @@ class SpectrometerTelecommunicator:
 
         self.disconnect_task = asyncio.create_task(self.listen_for_disconnection())
 
+        return response_raw
+
+    async def _listen_for_response(
+        self, end_signal: bytes = b"\n\r> ", maximum_messages: int = 1000
+    ):
+        loop = asyncio.get_event_loop()
+        if self.socket_obj is None:
+            return b""
+
+        response_raw: bytes = b""
+        last_response_raw_section: bytes = b""
+
+        # Keep on recieving information until a response section contains the end signal
+        for _ in range(maximum_messages):
+            async with asyncio.timeout(self.timeout):
+                last_response_raw_section = await loop.sock_recv(
+                    self.socket_obj, self.recieve_buffer_size
+                )
+            # Means connection has been broken
+            if last_response_raw_section == b"":
+                break
+            response_raw += last_response_raw_section
+            if last_response_raw_section.rfind(end_signal) == -1:
+                return response_raw
+
+        print("maximum message length exceeded")
         return response_raw
 
     @staticmethod
