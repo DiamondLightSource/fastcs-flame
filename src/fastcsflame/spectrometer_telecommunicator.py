@@ -130,7 +130,7 @@ class SpectrometerTelecommunicator:
         # server socket as soon as it opened
         message = await loop.sock_recv(self.socket_obj, self.recieve_buffer_size)
         if message == b"":
-            await self.disconnect()
+            await self.disconnect(cancel_disconnect_task=False)
         else:
             print(f"Unexpected message from device: {message}")
 
@@ -156,10 +156,12 @@ class SpectrometerTelecommunicator:
 
         self.message_lock.release()
 
-    async def disconnect(self):
+    async def disconnect(self, cancel_disconnect_task=True):
         if not self.connected:
             # Dont need to throw error in this case
             return
+        if self.disconnect_listen_task is not None and cancel_disconnect_task:
+            self.disconnect_listen_task.cancel()
         self.connected = False
         self.socket_obj.close()
         # This method is quite crude but it seems to have a high success rate
