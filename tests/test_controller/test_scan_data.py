@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
-from test_common import controller_and_mock_objects, lists_equal
+from test_common import controller_and_mock_objects
 
+from common import lists_equal
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
 INITIAL_DUMMY_SCAN_DATA = np.array(range(10))
