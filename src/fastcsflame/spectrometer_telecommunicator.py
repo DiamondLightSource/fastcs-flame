@@ -83,7 +83,7 @@ class SpectrometerTelecommunicator:
 
         self.connected = True
 
-        if self.disconnect_listen_task is not None:
+        if self.disconnect_listen_task is None:
             self.disconnect_listen_task = asyncio.create_task(
                 self._listen_for_disconnection()
             )
