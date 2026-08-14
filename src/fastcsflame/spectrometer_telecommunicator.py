@@ -116,8 +116,9 @@ class SpectrometerTelecommunicator:
             )
 
         if connection_message != TELNET_ASCII_CONNECTION_MESSAGE:
-            raise UnexpectedResponseError(
-                "Expected connection message: b'\\xff\\xfa,k\\x0f\\xff\\xf0' "
+            logger.warning(
+                "Unexpected connection message recieved: "
+                + f"Expected connection message: {TELNET_ASCII_CONNECTION_MESSAGE} "
                 + f"recieved: {connection_message}"
             )
 
