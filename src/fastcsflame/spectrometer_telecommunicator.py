@@ -78,8 +78,13 @@ class SpectrometerTelecommunicator:
             OSError
         """
 
-        await self._connect_socket()
-        await self._listen_for_connection_message()
+        try:
+            await self._connect_socket()
+            await self._listen_for_connection_message()
+        except BaseException as e:
+            if hasattr(self, "socket_obj"):
+                self.socket_obj.close()
+            raise e
 
         self.connected = True
 
@@ -98,11 +103,7 @@ class SpectrometerTelecommunicator:
         self.socket_obj.setblocking(False)
 
         async with asyncio.timeout(self.timeout):
-            try:
-                await loop.sock_connect(self.socket_obj, (self.ip, self.port))
-            except (ConnectionRefusedError, ConnectionResetError) as e:
-                self.socket_obj.close()
-                raise e
+            await loop.sock_connect(self.socket_obj, (self.ip, self.port))
 
     async def _listen_for_connection_message(self):
         loop = asyncio.get_event_loop()
@@ -158,7 +159,6 @@ class SpectrometerTelecommunicator:
 
     async def disconnect(self, cancel_disconnect_task=True):
         if not self.connected:
-            # Dont need to throw error in this case
             return
         if self.disconnect_listen_task is not None and cancel_disconnect_task:
             self.disconnect_listen_task.cancel()
