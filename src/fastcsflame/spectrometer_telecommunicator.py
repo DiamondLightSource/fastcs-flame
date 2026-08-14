@@ -1,5 +1,5 @@
 import asyncio
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from socket import socket
 
 from fastcs.logging import logger
@@ -35,6 +35,8 @@ class SpectrometerTelecommunicator:
     socket_obj: socket
     connected: bool
 
+    message_lock: asyncio.Lock
+
     disconnect_listen_task: asyncio.Task | None
 
     def __init__(
@@ -57,6 +59,8 @@ class SpectrometerTelecommunicator:
         self.timeout = timeout
         self.connected = False
         self.disconnect_listen_task = None
+
+        self.message_lock = asyncio.Lock()
 
     async def connect(self):
         """
@@ -137,6 +141,15 @@ class SpectrometerTelecommunicator:
             self._listen_for_disconnection()
         )
 
+    @asynccontextmanager
+    async def message_lock_manager(self):
+
+        await self.message_lock.acquire()
+
+        yield
+
+        self.message_lock.release()
+
     async def disconnect(self):
         if not self.connected:
             # Dont need to throw error in this case
@@ -172,18 +185,19 @@ class SpectrometerTelecommunicator:
                 + "Call connect() method first"
             )
 
-        with self.pause_disconnect_listening():
-            self.socket_obj.send(query.encode("ascii"))
+        async with self.message_lock_manager():
+            with self.pause_disconnect_listening():
+                self.socket_obj.send(query.encode("ascii"))
 
-            response_raw = await self._listen_for_response(end_signal=end_signal)
+                response_raw = await self._listen_for_response(end_signal=end_signal)
 
-            # Means connection was broken at some point
-            if response_raw == b"":
-                # Try restarting connection
-                # This will throw an error if the connection is still down
-                await self.restart_connection()
-                # Try sending query again
-                return await self._send_query(query, end_signal=end_signal)
+                # Means connection was broken at some point
+                if response_raw == b"":
+                    # Try restarting connection
+                    # This will throw an error if the connection is still down
+                    await self.restart_connection()
+                    # Try sending query again
+                    return await self._send_query(query, end_signal=end_signal)
 
         return response_raw
 
