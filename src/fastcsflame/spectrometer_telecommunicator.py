@@ -349,11 +349,11 @@ class SpectrometerTelecommunicator:
         """
         # start with scan_results
         # split on " " to separate the numbers and put them in a list
-        # get rid of the first 6 numbers and last 3
+        # get rid of the first 7 numbers and last 1
         #   as this is just meta data and handshakes
         # convert each one to an integer in a string comprehension
         try:
-            data = [int(s) for s in scan_result_str.split(" ")[7:-4]]
+            data = [int(s) for s in scan_result_str.split(" ")[7:-1]]
             return data
         except ValueError as e:
             raise UnexpectedResponseError from e
