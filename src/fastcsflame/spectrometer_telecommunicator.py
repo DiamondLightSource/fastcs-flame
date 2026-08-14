@@ -31,7 +31,7 @@ class SpectrometerTelecommunicator:
     recieve_buffer_size: int
     timeout: float
 
-    socket_obj: socket | None
+    socket_obj: socket
     connected: bool
 
     disconnect_task: asyncio.Task | None
@@ -54,7 +54,6 @@ class SpectrometerTelecommunicator:
         self.port = port
         self.recieve_buffer_size = recieve_buffer_size
         self.timeout = timeout
-        self.socket_obj = None
         self.connected = False
         self.disconnect_task = None
 
@@ -94,8 +93,6 @@ class SpectrometerTelecommunicator:
             await loop.sock_connect(self.socket_obj, (self.ip, self.port))
 
     async def _listen_for_connection_message(self):
-        if self.socket_obj is None:
-            return
         loop = asyncio.get_event_loop()
         # connection message is the initial message sent by the device when you connect
         # I'm not 100% sure what it means yet
@@ -113,7 +110,7 @@ class SpectrometerTelecommunicator:
             )
 
     async def listen_for_disconnection(self):
-        if self.socket_obj is None:
+        if not self.connected:
             return
         loop = asyncio.get_event_loop()
         # NOTE: If you get an OSError here its most likely because you closed the
@@ -125,7 +122,7 @@ class SpectrometerTelecommunicator:
             print(f"Unexpected message from device: {message}")
 
     async def disconnect(self):
-        if self.socket_obj is None:
+        if not self.connected:
             # Dont need to throw error in this case
             return
         self.socket_obj.close()
@@ -135,7 +132,6 @@ class SpectrometerTelecommunicator:
         # And im not sure what you would even do in this case when you already
         # tried to close it??
         await asyncio.sleep(0.5)
-        self.socket_obj = None
         self.connected = False
 
     async def restart_connection(self):
@@ -154,7 +150,7 @@ class SpectrometerTelecommunicator:
             TimeoutError
                 (when no response was recieved from the device)
         """
-        if self.socket_obj is None:
+        if not self.connected:
             raise NotConnectedError(
                 "Object is not connected to spectrometer, no socket exists. "
                 + "Call connect() method first"
@@ -184,7 +180,7 @@ class SpectrometerTelecommunicator:
         self, end_signal: bytes = b"\n\r> ", maximum_messages: int = 1000
     ):
         loop = asyncio.get_event_loop()
-        if self.socket_obj is None:
+        if not self.connected:
             return b""
 
         response_raw: bytes = b""
