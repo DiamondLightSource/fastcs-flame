@@ -235,7 +235,7 @@ class SpectrometerTelecommunicator:
             if last_response_raw_section == b"":
                 break
             response_raw += last_response_raw_section
-            if last_response_raw_section.rfind(end_signal) == -1:
+            if last_response_raw_section.rfind(end_signal) != -1:
                 return response_raw
 
         print("maximum message length exceeded")
