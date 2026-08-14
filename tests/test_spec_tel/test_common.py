@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -47,6 +48,24 @@ async def start_connection(
 
     async with start_spec_tel_object(spec_tel_obj=spec_tel_obj):
         yield (dummy_spec_obj, spec_tel_obj)
+
+
+@asynccontextmanager
+async def start_mock_socket(
+    spec_tel_obj: SpecTel | None = None,
+):
+    if spec_tel_obj is None:
+        spec_tel_obj = SpecTel("", 0)
+
+    spec_tel_obj.connected = True
+    socket_obj = Mock()
+    spec_tel_obj.socket_obj = socket_obj
+    event_loop = AsyncMock()
+    with patch(
+        "fastcsflame.spectrometer_telecommunicator.asyncio.get_event_loop",
+        return_value=event_loop,
+    ):
+        yield spec_tel_obj, socket_obj, event_loop
 
 
 @pytest.mark.asyncio
