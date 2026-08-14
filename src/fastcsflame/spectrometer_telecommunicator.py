@@ -83,9 +83,10 @@ class SpectrometerTelecommunicator:
 
         self.connected = True
 
-        self.disconnect_listen_task = asyncio.create_task(
-            self._listen_for_disconnection()
-        )
+        if self.disconnect_listen_task is not None:
+            self.disconnect_listen_task = asyncio.create_task(
+                self._listen_for_disconnection()
+            )
 
     async def _connect_socket(self):
         # TODO: Should check if socket_obj has been closed somehow
@@ -154,6 +155,7 @@ class SpectrometerTelecommunicator:
         if not self.connected:
             # Dont need to throw error in this case
             return
+        self.connected = False
         self.socket_obj.close()
         # This method is quite crude but it seems to have a high success rate
         # Ideally you would run recv from the socket until a b'' is recieved
@@ -161,7 +163,6 @@ class SpectrometerTelecommunicator:
         # And im not sure what you would even do in this case when you already
         # tried to close it??
         await asyncio.sleep(0.5)
-        self.connected = False
 
     async def restart_connection(self):
         await self.disconnect()
@@ -187,17 +188,25 @@ class SpectrometerTelecommunicator:
 
         async with self.message_lock_manager():
             with self.pause_disconnect_listening():
-                self.socket_obj.send(query.encode("ascii"))
+                # Double check connection is still up after waiting for lock
+                if self.connected:
+                    self.socket_obj.send(query.encode("ascii"))
 
-                response_raw = await self._listen_for_response(end_signal=end_signal)
+                    response_raw = await self._listen_for_response(
+                        end_signal=end_signal
+                    )
+                else:
+                    response_raw = b""
 
-                # Means connection was broken at some point
-                if response_raw == b"":
-                    # Try restarting connection
-                    # This will throw an error if the connection is still down
-                    await self.restart_connection()
-                    # Try sending query again
-                    return await self._send_query(query, end_signal=end_signal)
+        # Means connection was broken at some point
+        if response_raw == b"":
+            # Try restarting connection
+            # This will throw an error if the connection is still down
+            await self.restart_connection()
+            # Try sending query again
+            # Could cause a recursive loop in a very unlikely case
+            # Connecting works but response is always like a disconnected socket
+            return await self._send_query(query, end_signal=end_signal)
 
         return response_raw
 
