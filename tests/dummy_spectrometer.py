@@ -11,6 +11,9 @@ class DummySpectrometer:
 
     version: int = 4110
     integration_time: int = 10
+    # bool but represented as an int on
+    # device and in transmission
+    lamp: int = 0
     last_scan_data: list[int]
     scan_data_length = 2044
     chunk_size: int = 1024
@@ -124,6 +127,8 @@ class DummySpectrometer:
                 response_body = self.handle_get_version_request()
             case "I":
                 response_body = self.handle_set_integration_time_request(request)
+            case "J":
+                response_body = self.handle_set_lamp_request(request)
             case "Z":
                 response_body = await self.handle_get_last_scan_request()
             case "S":
@@ -150,6 +155,14 @@ class DummySpectrometer:
             return ""
         new_integration_time = int(request[1:].split("\n")[0].rstrip())
         self.integration_time = new_integration_time
+        return " "
+
+    def handle_set_lamp_request(self, request: str) -> str:
+        if "\n" not in request:
+            # TODO: make sure this is correct
+            return ""
+        new_lamp = int(request[1:].split("\n")[0].rstrip())
+        self.lamp = new_lamp
         return " "
 
     async def handle_get_last_scan_request(self) -> str:
