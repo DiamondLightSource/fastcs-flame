@@ -12,6 +12,9 @@ SET_DUMMY_INTEGRATION_TIME = 8
 
 @pytest.mark.asyncio
 async def test_initialisation(loguru_caplog):
+    """
+    Test integration time PV is initialised correctly
+    """
     spec_tel_mock = AsyncMock()
     spec_tel_mock.integration_time = INITIAL_DUMMY_INTEGRATION_TIME
 
@@ -34,6 +37,9 @@ async def test_initialisation(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_set_integration_time(loguru_caplog):
+    """
+    Test setting the integration time PV
+    """
 
     spec_tel_mock = AsyncMock()
     spec_tel_mock.integration_time = INITIAL_DUMMY_INTEGRATION_TIME
@@ -87,6 +93,9 @@ async def _test_bad_integration_time_get(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_bad_integration_time_set(loguru_caplog):
+    """
+    Test raising an error from the set integration time method
+    """
     spec_tel_mock = AsyncMock()
 
     spec_tel_mock.integration_time = INITIAL_DUMMY_INTEGRATION_TIME
