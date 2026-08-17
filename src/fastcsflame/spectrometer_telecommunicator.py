@@ -35,8 +35,12 @@ class SpectrometerTelecommunicator:
     socket_obj: socket
     connected: bool
 
+    # Used to prevent simulatneous messages to the device
     message_lock: asyncio.Lock
 
+    # A reference to the task that listens for an interruption in connection
+    # If a reference to running tasks is not kept they can be garbage collected
+    # Should only be None if connected is False
     disconnect_listen_task: asyncio.Task | None
 
     def __init__(
@@ -64,7 +68,7 @@ class SpectrometerTelecommunicator:
 
     async def connect(self):
         """
-        Connects to the spectrometers socket
+        Starts communications to the spectrometer
         raises
             TimeoutError
                 (when the socket address is wrong
@@ -76,6 +80,9 @@ class SpectrometerTelecommunicator:
             ConnectionRefusedError
             ConnectionResetError
             OSError
+
+        Connects to the spectrometers socket, listens and parses its initial message
+        and starts the task that listens for an interruption in the connection
         """
 
         try:
@@ -94,6 +101,18 @@ class SpectrometerTelecommunicator:
             )
 
     async def _connect_socket(self):
+        """
+        Establishes a connection with the device
+        Do NOT run this method without listening for the intial
+        connection message from the spectrometer after
+        raises:
+            AlreadyConnectedError
+                If this objects is already connected to the spectrometer
+            TimeoutError
+                If connection attempt times out
+                This is likely because something is already connected to
+                the device's port
+        """
         # TODO: Should check if socket_obj has been closed somehow
         if self.connected:
             raise AlreadyConnectedError("Connect method has already been run")
@@ -106,6 +125,13 @@ class SpectrometerTelecommunicator:
             await loop.sock_connect(self.socket_obj, (self.ip, self.port))
 
     async def _listen_for_connection_message(self):
+        """
+        Listens for the innitial connection message from the spectrometer
+        raises:
+            TimeoutError
+                When the device takes too long to send its initial connection message
+        Logs a warning when the initial connection message was not what it expected
+        """
         loop = asyncio.get_event_loop()
         # connection message is the initial message sent by the device when you connect
         # I'm not 100% sure what it means yet
@@ -124,6 +150,16 @@ class SpectrometerTelecommunicator:
             )
 
     async def _listen_for_disconnection(self):
+        """
+        Constantly listens for a disconnection message from the device
+
+        This will be an empty bytes array (b"")
+        This method will not end so its recommended to run as a task
+        If this method is run as a task the field disconnect_listen_task
+        should be set to its task reference
+        This object will not be able to recieve messages from the device
+        whilst this task is running
+        """
         if not self.connected:
             return
         loop = asyncio.get_event_loop()
@@ -137,6 +173,11 @@ class SpectrometerTelecommunicator:
 
     @contextmanager
     def pause_disconnect_listening(self):
+        """
+        A context manager to temporarily pause the disconnect listening task
+
+        This should be used whilst sending messages that expect a response
+        """
         # Raise an exception if its None??
         if self.disconnect_listen_task is not None:
             self.disconnect_listen_task.cancel()
@@ -150,6 +191,12 @@ class SpectrometerTelecommunicator:
 
     @asynccontextmanager
     async def message_lock_manager(self):
+        """
+        A context manager that acquires the message lock
+
+        This should be used whilst sending messages that expect a response
+        The lock will be released automatically when the context is left
+        """
 
         await self.message_lock.acquire()
 
@@ -158,6 +205,13 @@ class SpectrometerTelecommunicator:
         self.message_lock.release()
 
     async def disconnect(self, cancel_disconnect_task=True):
+        """
+        Closes the connection with the spectrometer
+        cancel_disconnect_task: Whether to cancel the disconnect task
+            inside this method or not
+            There is only one scenario where this should be False, that
+            is when this method is being called from the disconnect task
+        """
         if not self.connected:
             return
         if self.disconnect_listen_task is not None and cancel_disconnect_task:
@@ -172,6 +226,11 @@ class SpectrometerTelecommunicator:
         await asyncio.sleep(0.5)
 
     async def restart_connection(self):
+        """
+        Restarts the device connection
+
+        Just calls disconnect and then connect
+        """
         await self.disconnect()
         await self.connect()
 
@@ -220,6 +279,15 @@ class SpectrometerTelecommunicator:
     async def _listen_for_response(
         self, end_signal: bytes = b"\n\r> ", maximum_messages: int = 1000
     ):
+        """
+        Listens for a message from the spectrometer
+        end_signal: Array of bytes to look for to know the message has ended
+        maximum_messages: How many message chunks to listen out for before
+            stopping listening
+
+        Listens for message chunks until a chunk contains the end signal
+        Returns all chunks appended
+        """
         # Disconnect listen task should alays be cancelled before running this method
         # Cant do it inside the method as it may be too late
         if self.disconnect_listen_task is not None:
