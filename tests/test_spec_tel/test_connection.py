@@ -16,6 +16,7 @@ from fastcsflame.spectrometer_telecommunicator import (
 )
 
 DEFAULT_SLEEP_TIME = 2
+SCAN_TIME = 11
 
 
 @pytest.mark.asyncio
@@ -80,3 +81,20 @@ async def test_device_already_connected():
         with pytest.raises(TimeoutError):
             async with start_spec_tel_object(spec_tel_obj=spec_tel_obj_2):
                 pass
+
+
+@pytest.mark.asyncio
+async def test_disconnect_during_scan():
+    async with start_connection() as (dummy_spec_obj, spec_tel_obj):
+
+        async def disconnect_dummy_after_time():
+            await asyncio.sleep(DEFAULT_SLEEP_TIME)
+            await dummy_spec_obj.disconnect()
+
+        asyncio.create_task(disconnect_dummy_after_time())
+
+        with pytest.raises((ConnectionRefusedError, ConnectionResetError)):
+            await spec_tel_obj.scan()
+
+        assert not spec_tel_obj.connected
+        assert not spec_tel_obj.message_lock.locked()
