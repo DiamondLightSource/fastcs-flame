@@ -1,5 +1,5 @@
 import pytest
-from test_common import controller_and_mock_objects
+from tests.test_controller.test_c_common import controller_and_mock_objects
 
 DUMMY_FILE_PATH_1 = "/scratch/wvq67617/files"
 DUMMY_FILE_NAME_1 = "data"
