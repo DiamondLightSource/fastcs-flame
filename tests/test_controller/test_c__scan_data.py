@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import numpy as np
 import pytest
-from tests.test_controller.test_c_common import controller_and_mock_objects
+from test_c_common import controller_and_mock_objects
 
 from common import lists_equal
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError

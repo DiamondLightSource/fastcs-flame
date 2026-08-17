@@ -2,7 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
-from tests.test_controller.test_c_common import controller_and_mock_objects
+from test_c_common import controller_and_mock_objects
 
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
