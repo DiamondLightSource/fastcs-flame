@@ -22,6 +22,9 @@ DEFAULT_INTEGRATION_TIME_SET_RESPONSE = DummySpectrometer.wrap_response(
 
 @pytest.mark.asyncio
 async def test_get_integration_time_message():
+    """
+    Test the message sent when get_integration_time() is called
+    """
     async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
         # Simulate expected response so no errors are thrown
         # Easier than mocking all the various methods involved
@@ -34,6 +37,9 @@ async def test_get_integration_time_message():
 
 @pytest.mark.asyncio
 async def test_get_integration_time_decoding():
+    """
+    Test the value returned when get_integration_time() is called
+    """
     async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
         # Simulate expected response so no errors are thrown
         # Easier than mocking all the various methods involved
@@ -46,6 +52,9 @@ async def test_get_integration_time_decoding():
 
 @pytest.mark.asyncio
 async def test_get_integration_time():
+    """
+    Test full integration time call
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         recieved_integration_time = await spec_tel_obj.get_integration_time()
         assert recieved_integration_time == dummy_spec_obj.integration_time
@@ -53,6 +62,9 @@ async def test_get_integration_time():
 
 @pytest.mark.asyncio
 async def test_get_integration_time_bad_response():
+    """
+    Test recieving an unexpected response from get_integration_time()
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         dummy_spec_obj.handle_get_integration_time_request = lambda: ""
         with pytest.raises(UnexpectedResponseError):
@@ -61,6 +73,9 @@ async def test_get_integration_time_bad_response():
 
 @pytest.mark.asyncio
 async def test_set_integration_time_message():
+    """
+    Test the message sent when set_integration_time() is called
+    """
     async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
         # Simulate expected response so no errors are thrown
         # Easier than mocking all the various methods involved
@@ -74,6 +89,9 @@ async def test_set_integration_time_message():
 
 @pytest.mark.asyncio
 async def test_set_integration_time():
+    """
+    Test fully set_integration_time() call
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         await spec_tel_obj.set_integration_time(CHANGED_INTEGRATION_TIME)
         assert dummy_spec_obj.integration_time == CHANGED_INTEGRATION_TIME
@@ -81,6 +99,9 @@ async def test_set_integration_time():
 
 @pytest.mark.asyncio
 async def test_set_integration_time_bad_response(loguru_caplog):
+    """
+    Test recieving an unexpected response from set_integration_time()
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         dummy_spec_obj.handle_set_integration_time_request = lambda request: ""
         await spec_tel_obj.set_integration_time(CHANGED_INTEGRATION_TIME)
