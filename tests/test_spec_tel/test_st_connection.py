@@ -2,14 +2,14 @@ import asyncio
 from unittest.mock import patch
 
 import pytest
-from test_common import (
+from tests.test_spec_tel.test_st_common import (
     DEFAULT_IP,
     DEFAULT_PORT,
     run_dummy_spectrometer,
     start_connection,
     start_spec_tel_object,
 )
-from test_integration_time import CHANGED_INTEGRATION_TIME
+from tests.test_spec_tel.test_st_integration_time import CHANGED_INTEGRATION_TIME
 
 from dummy_spectrometer import DummySpectrometer
 from fastcsflame.spectrometer_telecommunicator import NotConnectedError

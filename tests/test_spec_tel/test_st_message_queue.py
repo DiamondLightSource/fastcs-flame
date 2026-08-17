@@ -1,8 +1,8 @@
 import asyncio
 
 import pytest
-from test_common import start_connection
-from test_integration_time import CHANGED_INTEGRATION_TIME
+from tests.test_spec_tel.test_st_common import start_connection
+from tests.test_spec_tel.test_st_integration_time import CHANGED_INTEGRATION_TIME
 
 from common import lists_equal
 
