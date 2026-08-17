@@ -9,8 +9,10 @@ from test_common import (
     start_connection,
     start_spec_tel_object,
 )
+from test_integration_time import CHANGED_INTEGRATION_TIME
 
 from dummy_spectrometer import DummySpectrometer
+from fastcsflame.spectrometer_telecommunicator import NotConnectedError
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator as SpecTel,
 )
@@ -95,6 +97,29 @@ async def test_disconnect_during_scan():
 
         with pytest.raises((ConnectionRefusedError, ConnectionResetError)):
             await spec_tel_obj.scan()
+
+        assert not spec_tel_obj.connected
+        assert not spec_tel_obj.message_lock.locked()
+
+
+@pytest.mark.asyncio
+async def test_disconnect_with_queue():
+    async with start_connection() as (dummy_spec_obj, spec_tel_obj):
+        await spec_tel_obj.message_lock.acquire()
+
+        set_task = asyncio.create_task(
+            spec_tel_obj.set_integration_time(CHANGED_INTEGRATION_TIME)
+        )
+        get_task = asyncio.create_task(spec_tel_obj.get_integration_time())
+
+        await dummy_spec_obj.disconnect()
+        spec_tel_obj.message_lock.release()
+
+        with pytest.raises(NotConnectedError):
+            set_task.result()
+
+        with pytest.raises(NotConnectedError):
+            get_task.result()
 
         assert not spec_tel_obj.connected
         assert not spec_tel_obj.message_lock.locked()
