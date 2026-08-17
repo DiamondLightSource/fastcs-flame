@@ -26,6 +26,9 @@ SCAN_RESPONSE = DummySpectrometer.wrap_response(
 
 @pytest.mark.asyncio
 async def test_get_last_scan_data_message():
+    """
+    Test the message sent when get_last_scan() is called
+    """
     async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
         event_loop.sock_recv = AsyncMock(return_value=GET_LAST_SCAN_RESPONSE)
         await spec_tel_obj.get_last_scan()
@@ -34,6 +37,9 @@ async def test_get_last_scan_data_message():
 
 @pytest.mark.asyncio
 async def test_get_last_scan_data_decoding():
+    """
+    Test the decoding of the get_last_scan() recieved data message
+    """
     async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
         event_loop.sock_recv = AsyncMock(return_value=GET_LAST_SCAN_RESPONSE)
         get_last_scan_response = await spec_tel_obj.get_last_scan()
@@ -42,6 +48,9 @@ async def test_get_last_scan_data_decoding():
 
 @pytest.mark.asyncio
 async def test_get_last_scan_data():
+    """
+    Test full get_last_scan() call
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         recieved_last_scan = await spec_tel_obj.get_last_scan()
         assert lists_equal(dummy_spec_obj.last_scan_data, recieved_last_scan)
@@ -49,6 +58,9 @@ async def test_get_last_scan_data():
 
 @pytest.mark.asyncio
 async def test_get_last_scan_data_short_response():
+    """
+    Test get_last_scan() when the recieved message is shorter than expected
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
 
         async def empty_return_awaitable():
@@ -61,6 +73,9 @@ async def test_get_last_scan_data_short_response():
 
 @pytest.mark.asyncio
 async def test_get_last_scan_data_bad_response():
+    """
+    Test get_last_scan() when the recieved message is unexpected
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
 
         async def empty_return_awaitable():
@@ -73,6 +88,9 @@ async def test_get_last_scan_data_bad_response():
 
 @pytest.mark.asyncio
 async def test_scan_message():
+    """
+    Test the message sent when scan() is called
+    """
     async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
         event_loop.sock_recv = AsyncMock(return_value=SCAN_RESPONSE)
         await spec_tel_obj.scan()
@@ -81,6 +99,9 @@ async def test_scan_message():
 
 @pytest.mark.asyncio
 async def test_scan_decoding():
+    """
+    Test the decoding of the response to a scan() call
+    """
     async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
         event_loop.sock_recv = AsyncMock(return_value=SCAN_RESPONSE)
         scan_data_recieved = await spec_tel_obj.scan()
@@ -88,7 +109,10 @@ async def test_scan_decoding():
 
 
 @pytest.mark.asyncio
-async def test_data():
+async def test_scan():
+    """
+    Test full scan() call
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         recieved_last_scan = await spec_tel_obj.scan()
         assert lists_equal(dummy_spec_obj.last_scan_data, recieved_last_scan)
@@ -96,6 +120,9 @@ async def test_data():
 
 @pytest.mark.asyncio
 async def test_scan_data_short_response():
+    """
+    Test recieving a shorter than expect message from scan()
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
 
         async def empty_return_awaitable():
@@ -108,6 +135,9 @@ async def test_scan_data_short_response():
 
 @pytest.mark.asyncio
 async def test_scan_data_bad_response():
+    """
+    Test recieving a bad response from scan()
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
 
         async def empty_return_awaitable():
