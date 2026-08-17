@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from tests.test_spec_tel.test_st_common import start_connection, start_mock_socket
+from test_st_common import start_connection, start_mock_socket
 
 from dummy_spectrometer import DummySpectrometer
 from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
