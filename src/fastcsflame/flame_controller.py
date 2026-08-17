@@ -7,10 +7,6 @@ from fastcs.methods.command import command
 
 from fastcsflame.file_builder import FileBuilder
 from fastcsflame.flame_controller_attributes import (
-    DummyBoolIO,
-    DummyBoolIORef,
-    DummyStrIO,
-    DummyStrIORef,
     IntegrationTimeIO,
     IntegrationTimeIORef,
     SpectrometerScanIO,
@@ -34,13 +30,13 @@ class FlameController(Controller):
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
 
-    capture: AttrRW[bool, DummyBoolIORef]
+    capture: AttrRW[bool]
     # Where h5 files will be saved within the mounted directory
-    file_path: AttrRW[str, DummyStrIORef]
+    file_path: AttrRW[str]
     # Name of saved h5 file (not including extension)
-    file_name: AttrRW[str, DummyStrIORef]
+    file_name: AttrRW[str]
 
-    scan_in_progress: AttrR[bool, DummyBoolIORef]
+    scan_in_progress: AttrR[bool]
 
     def __init__(
         self,
@@ -70,8 +66,6 @@ class FlameController(Controller):
         super().__init__(
             ios=[
                 IntegrationTimeIO(),
-                DummyBoolIO(),
-                DummyStrIO(),
                 SpectrometerScanIO(),
             ]
         )
@@ -90,12 +84,12 @@ class FlameController(Controller):
             io_ref=SpectrometerScanIORef(self.spec_tel_obj),
         )
 
-        self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
+        self.capture = AttrRW(Bool(), initial_value=False)
         self.capture.add_on_update_callback(self.on_capture_change)
-        self.file_path = AttrRW(String(), io_ref=DummyStrIORef(default_file_path))
-        self.file_name = AttrRW(String(), io_ref=DummyStrIORef(default_file_name))
+        self.file_path = AttrRW(String(), initial_value=default_file_path)
+        self.file_name = AttrRW(String(), initial_value=default_file_name)
 
-        self.scan_in_progress = AttrR(Bool(), io_ref=DummyBoolIORef(False))
+        self.scan_in_progress = AttrR(Bool(), initial_value=False)
 
     async def connect(self):
         await super().connect()
