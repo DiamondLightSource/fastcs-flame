@@ -14,6 +14,9 @@ SET_DUMMY_SCAN_DATA = np.array(range(10)) + 10
 
 @pytest.mark.asyncio
 async def test_initialisation(loguru_caplog):
+    """
+    Test scan data PV is initialised correctly from device on startup
+    """
     spec_tel_mock = AsyncMock()
     spec_tel_mock.last_scan_data = INITIAL_DUMMY_SCAN_DATA
 
@@ -36,6 +39,9 @@ async def test_initialisation(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_scan_data_command(loguru_caplog):
+    """
+    Test triggering of a scan and updating the PV after
+    """
     spec_tel_mock = AsyncMock()
     spec_tel_mock.last_scan_data = INITIAL_DUMMY_SCAN_DATA
 
@@ -94,6 +100,9 @@ async def _test_bad_last_scan_data_get(loguru_caplog):
 
 @pytest.mark.asyncio
 async def test_bad_scan_command(loguru_caplog):
+    """
+    Test recieving an unexpected response from a scan trigger
+    """
     spec_tel_mock = AsyncMock()
 
     spec_tel_mock.last_scan_data = INITIAL_DUMMY_SCAN_DATA
