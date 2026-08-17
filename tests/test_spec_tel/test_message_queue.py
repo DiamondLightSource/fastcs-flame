@@ -9,6 +9,12 @@ from common import lists_equal
 
 @pytest.mark.asyncio
 async def test_get_scan_data_then_get_integration_time():
+    """
+    Test calling get_integration_time() whilst waiting for a scan data response
+
+    This should not cause either call to error
+    Integration time should be responded to after scan data is returned
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
 
         async def get_integration_time_coroutine():
@@ -29,6 +35,13 @@ async def test_get_scan_data_then_get_integration_time():
 
 @pytest.mark.asyncio
 async def test_scan_then_get_scan_data():
+    """
+    Test calling get_last_scan_data() whilst a scan is in progress
+
+    This should not cause either call to error
+    The scan data returned from the second query should match the
+    NEW scan data
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         new_scan_data = []
 
@@ -51,6 +64,12 @@ async def test_scan_then_get_scan_data():
 
 @pytest.mark.asyncio
 async def test_scan_then_set_and_get_integration_time():
+    """
+    Test queueing both a set and a get on integration time
+
+    The set request should run first
+    The get request should return the NEW integration time value
+    """
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
 
         async def set_integration_time_coroutine():
