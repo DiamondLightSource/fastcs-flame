@@ -144,11 +144,15 @@ class SpectrometerWCCIO(AttributeIO[float, SpectrommeterWCCIORef]):
 
     async def send(self, attr: AttrW[float, SpectrommeterWCCIORef], value: float):
         spec_tel_obj = attr.io_ref.spec_tel_obj
-        await spec_tel_obj.set_wcc(attr.io_ref.order, value)
+        try:
+            await spec_tel_obj.set_wcc(attr.io_ref.order, value)
+        except UnexpectedResponseError as e:
+            logger.warning("Recieved unexpected response from wcc set request")
+            logger.warning(e)
 
         # update RBV to match written value
         if isinstance(attr, AttrRW):
-            await attr.update(value)
+            await self.update(attr)
 
 
 @dataclass
