@@ -92,11 +92,6 @@ class FlameController(Controller):
             "Advanced",
             AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
         )
-
-        self.add_sub_controller(
-            "Advanced",
-            AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
-        )
         self.add_sub_controller(
             "Calibration", CalibrationSubcontroller(self.spec_tel_obj)
         )
