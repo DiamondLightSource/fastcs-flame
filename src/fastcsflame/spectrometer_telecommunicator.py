@@ -456,9 +456,11 @@ class SpectrometerTelecommunicator:
         if response[-2:] == "\n\r":
             response = response[:-2]
         else:
-            print("no trailing characters found on wcc query")
-
-        return float(response)
+            logger.warning("No trailing characters found on WCC query")
+        try:
+            return float(response)
+        except ValueError as e:
+            raise UnexpectedResponseError from e
 
     async def set_wcc(self, order: int, value: float):
         value_str = self._float_to_str14(value)
