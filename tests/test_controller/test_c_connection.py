@@ -1,10 +1,9 @@
-import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
 from test_c_common import controller_and_mock_objects
 
-from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
+from fastcsflame.advanced_subcontroller import AdvancedSubcontroller
 
 
 @pytest.mark.asyncio
@@ -21,30 +20,86 @@ async def test_connection(loguru_caplog):
         _,
     ) = await controller_and_mock_objects(loguru_caplog)
 
-    spec_tel_mock.connect.assert_called()
+    spec_tel_mock.connect.assert_awaited_once()
 
 
-# Test hidden for now
-# Wont work until FastCS created coroutines can be closed manually
-# or are closed on connect exceptions
 @pytest.mark.asyncio
-async def _test_bad_connection(loguru_caplog):
+async def test_bad_connection(loguru_caplog):
     spec_tel_mock = AsyncMock()
 
-    async def connect():
-        raise UnexpectedResponseError
-
-    spec_tel_mock.connect = connect
+    spec_tel_mock.connect = AsyncMock(side_effect=TimeoutError)
 
     (
-        task_pointer,
+        _,
         _,
         spec_tel_mock,
         _,
-        error_queue,
+        _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
-    task_pointer.cancel()
-    await asyncio.gather(task_pointer)
+    assert "Failed connection attempt" in loguru_caplog.text
 
-    assert isinstance(error_queue.pop(), UnexpectedResponseError)
+
+@pytest.mark.asyncio
+async def test_force_connect(loguru_caplog):
+    spec_tel_mock = AsyncMock()
+
+    spec_tel_mock.connect = AsyncMock(side_effect=TimeoutError)
+
+    (
+        _,
+        flame_controller,
+        spec_tel_mock,
+        _,
+        _,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    spec_tel_mock.connect = AsyncMock()
+    advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
+    assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+    await advanced_subcontroller.force_connect()
+
+    spec_tel_mock.connect.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_force_disconnect(loguru_caplog):
+    (
+        _,
+        flame_controller,
+        spec_tel_mock,
+        _,
+        _,
+    ) = await controller_and_mock_objects(loguru_caplog)
+
+    advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
+    assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+    await advanced_subcontroller.force_disconnect()
+
+    spec_tel_mock.disconnect.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_bad_force_connect(loguru_caplog):
+    spec_tel_mock = AsyncMock()
+
+    spec_tel_mock.connect = AsyncMock(side_effect=TimeoutError)
+
+    (
+        _,
+        flame_controller,
+        spec_tel_mock,
+        _,
+        _,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    loguru_caplog.clear()
+
+    advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
+    assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+    await advanced_subcontroller.force_connect()
+
+    assert "Failed connection attempt" in loguru_caplog.text
+
+
+# TODO: Test connected PV
