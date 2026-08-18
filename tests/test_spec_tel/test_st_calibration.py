@@ -151,3 +151,6 @@ async def test_set_wcc_bad_response(loguru_caplog):
         dummy_spec_obj.handle_set_wcc_request = lambda request: (0, "")
         with pytest.raises(UnexpectedResponseError):
             await spec_tel_obj.set_wcc(0, 1.0)
+
+
+# TODO: Add unit tests for _float_to_str14
