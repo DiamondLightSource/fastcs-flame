@@ -116,3 +116,41 @@ async def test_get_wcc_bad_response():
         dummy_spec_obj.handle_get_wcc_request = lambda request: ""
         with pytest.raises(UnexpectedResponseError):
             await spec_tel_obj.get_wcc(1)
+
+
+@pytest.mark.asyncio
+async def test_set_wcc_message(wcc_details):
+    order, _, change_value = wcc_details
+    """
+    Test the message sent when set_wcc() is called
+    """
+    async with start_mock_socket() as (spec_tel_obj, socket_obj, event_loop):
+        event_loop.sock_recv = AsyncMock(
+            return_value=set_request_response(order, change_value)
+        )
+        await spec_tel_obj.set_wcc(order, change_value)
+        socket_obj.send.assert_called_once_with(
+            set_request_message(order, change_value)
+        )
+
+
+@pytest.mark.asyncio
+async def test_set_wcc(wcc_details):
+    """
+    Test fully set_wcc() call
+    """
+    order, _, change_value = wcc_details
+    async with start_connection() as (dummy_spec_obj, spec_tel_obj):
+        await spec_tel_obj.set_wcc(order, change_value)
+        assert math.isclose(float(dummy_spec_obj.wccs[order + 1]), change_value)
+
+
+@pytest.mark.asyncio
+async def test_set_wcc_bad_response(loguru_caplog):
+    """
+    Test recieving an unexpected response from set_wcc()
+    """
+    async with start_connection() as (dummy_spec_obj, spec_tel_obj):
+        dummy_spec_obj.handle_set_wcc_request = lambda request: (0, "")
+        with pytest.raises(UnexpectedResponseError):
+            await spec_tel_obj.set_wcc(0, 1.0)
