@@ -94,8 +94,13 @@ class FlameController(Controller):
 
     async def connect(self):
         await super().connect()
-        await self.spec_tel_obj.connect()
-        await self.connected.update(True)
+        try:
+            await self.spec_tel_obj.connect()
+            await self.connected.update(True)
+        except BaseException as e:
+            logger.warning("Failed connection attempt")
+            logger.warning(e)
+            await self.connected.update(False)
 
     async def disconnect(self) -> None:
         await super().disconnect()
