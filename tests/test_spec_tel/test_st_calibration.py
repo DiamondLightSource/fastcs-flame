@@ -38,10 +38,10 @@ def wcc_details(request):
         4: -0.000000020812843,
     }
     change_values: dict[int, float] = {
-        1: 178.89592,
-        2: 0.38649029,
-        3: -0.000018147914,
-        4: -0.000000020812843,
+        1: 179.89592,
+        2: 0.39649029,
+        3: -0.000019147914,
+        4: -0.000000021812843,
     }
 
     return (order, default_values[order + 1], change_values[order + 1])
