@@ -4,23 +4,9 @@ from unittest.mock import AsyncMock
 import pytest
 from test_st_common import start_connection, start_mock_socket
 
-from dummy_spectrometer import DummySpectrometer
 from fastcsflame.spectrometer_telecommunicator import (
     SpectrometerTelecommunicator,
     UnexpectedResponseError,
-)
-
-DEFAULT_INTEGRATION_TIME = 10
-CHANGED_INTEGRATION_TIME = 8
-
-INTEGRATION_TIME_GET = "?I"
-INTEGRATION_TIME_SET = f"I{CHANGED_INTEGRATION_TIME}\n"
-
-DEFAULT_INTEGRATION_TIME_GET_RESPONSE = DummySpectrometer.wrap_response(
-    INTEGRATION_TIME_GET, str(DEFAULT_INTEGRATION_TIME)
-)
-DEFAULT_INTEGRATION_TIME_SET_RESPONSE = DummySpectrometer.wrap_response(
-    INTEGRATION_TIME_SET, ""
 )
 
 
@@ -29,19 +15,19 @@ def wcc_details(request):
 
     order = request.param
     default_values: dict[int, float] = {
-        0: 178.89592,
-        1: 0.38649029,
-        2: -0.000018147914,
-        3: -0.000000020812843,
+        1: 178.89592,
+        2: 0.38649029,
+        3: -0.000018147914,
+        4: -0.000000020812843,
     }
     change_values: dict[int, float] = {
-        0: 178.89592,
-        1: 0.38649029,
-        2: -0.000018147914,
-        3: -0.000000020812843,
+        1: 178.89592,
+        2: 0.38649029,
+        3: -0.000018147914,
+        4: -0.000000020812843,
     }
 
-    return (order, default_values[order], change_values[order])
+    return (order, default_values[order + 1], change_values[order + 1])
 
 
 def get_request_message(order: int):
@@ -60,7 +46,7 @@ def get_request_response(order: int, value: float):
 
 def set_request_message(order: int, value: float):
     str14_no_underscore = SpectrometerTelecommunicator._float_to_str14(value)
-    str14_with_underscore = str14_no_underscore[1:] + "_" + str14_no_underscore[:1]
+    str14_with_underscore = str14_no_underscore[:1] + "_" + str14_no_underscore[1:]
     return (
         b"x"
         + str(order + 1).encode("ascii")
@@ -76,7 +62,7 @@ def set_request_response(order: int, value: float):
         + str(order + 1).encode("ascii")
         + b"\n\r\r"
         + SpectrometerTelecommunicator._float_to_str14(value).encode("ascii")
-        + b"\n\r"
+        + b"\n\r\n\r> "
     )
 
 
@@ -118,7 +104,7 @@ async def test_get_wcc(wcc_details):
     order, _, _ = wcc_details
     async with start_connection() as (dummy_spec_obj, spec_tel_obj):
         recieved_wcc = await spec_tel_obj.get_wcc(order)
-        assert math.isclose(recieved_wcc, float(dummy_spec_obj.wccs[order]))
+        assert math.isclose(recieved_wcc, float(dummy_spec_obj.wccs[order + 1]))
 
 
 @pytest.mark.asyncio

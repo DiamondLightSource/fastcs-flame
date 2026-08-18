@@ -467,14 +467,15 @@ class SpectrometerTelecommunicator:
 
         # Need to insert a character in the second space of the value string
         # This character gets ignored when sending to spectrometer for some reason
-        value_str = value_str[:1] + "_" + value_str[1:]
-        query = f"x{order + 1}\r{value_str}\n"
+        underscore_value_str = value_str[:1] + "_" + value_str[1:]
+        query = f"x{order + 1}\r{underscore_value_str}\n"
         # Cant extract response as it doesnt follow the same format as the others
         # Doesnt include an acknowledgement bit as almost any input is valid
         response_raw = await self._send_query(query)
         if b"\x15" in response_raw:
-            print("NAK recieved for set WCC")
-        # Could check response raw includes the right value here??
+            logger.warning("Negative acknowledgement recieved for wcc set")
+        if value_str not in response_raw.decode():
+            raise UnexpectedResponseError
 
     @staticmethod
     def _float_to_str14(value: float) -> str:

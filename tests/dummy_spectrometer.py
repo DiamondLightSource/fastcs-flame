@@ -24,7 +24,7 @@ class DummySpectrometer:
     # Format:
     # (-)X.XXXXXXXe(+/-)XX
     #             ^ exponent index
-    wccs: list[str]
+    wccs: dict[int, str]
 
     waiting_for_connection: asyncio.Event
 
@@ -46,12 +46,12 @@ class DummySpectrometer:
         self.connected = False
         self.connection = None
 
-        self.wccs = [
-            "1.7889592e+02",
-            "3.8649029e-01",
-            "-1.8147914e-05",
-            "-2.0812843e-08",
-        ]
+        self.wccs: dict[int, str] = {
+            1: "1.7889592e+02",
+            2: "3.8649029e-01",
+            3: "-1.8147914e-05",
+            4: "-2.0812843e-08",
+        }
 
         self.waiting_for_connection = asyncio.Event()
 
@@ -154,7 +154,7 @@ class DummySpectrometer:
                 request = "x" + str(index)
                 response_delimeter = b"\n\r\r"
                 response_body = value
-                response_footer = b"\n\r"
+                response_footer = b"\n\r\n\r> "
             case "?":
                 match request[1]:
                     case "I":
@@ -250,7 +250,7 @@ class DummySpectrometer:
         # Format of request:
         #   ?x[index]\n
         index = int(request[2:-1])
-        return self.wccs[index - 1]
+        return self.wccs[index]
 
     def handle_set_wcc_request(self, request: str) -> tuple[int, str]:
         if "\n" not in request or "\r" not in request:
