@@ -6,10 +6,6 @@ from sympy import solve
 from sympy.abc import a, b, c, d
 
 from fastcsflame.flame_controller_attributes import (
-    DummyFloatIO,
-    DummyFloatIORef,
-    DummyIntIO,
-    DummyIntIORef,
     SpectrometerWCCIO,
     SpectrommeterWCCIORef,
 )
@@ -19,15 +15,15 @@ from fastcsflame.spectrometer_telecommunicator import (
 
 
 class CalibrationSubcontroller(Controller):
-    pixel_1_index: AttrRW[int, DummyIntIORef]
-    pixel_2_index: AttrRW[int, DummyIntIORef]
-    pixel_3_index: AttrRW[int, DummyIntIORef]
-    pixel_4_index: AttrRW[int, DummyIntIORef]
+    pixel_1_index: AttrRW[int]
+    pixel_2_index: AttrRW[int]
+    pixel_3_index: AttrRW[int]
+    pixel_4_index: AttrRW[int]
 
-    pixel_1_wavelength: AttrRW[float, DummyFloatIORef]
-    pixel_2_wavelength: AttrRW[float, DummyFloatIORef]
-    pixel_3_wavelength: AttrRW[float, DummyFloatIORef]
-    pixel_4_wavelength: AttrRW[float, DummyFloatIORef]
+    pixel_1_wavelength: AttrRW[float]
+    pixel_2_wavelength: AttrRW[float]
+    pixel_3_wavelength: AttrRW[float]
+    pixel_4_wavelength: AttrRW[float]
 
     zero_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
     first_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
@@ -35,17 +31,17 @@ class CalibrationSubcontroller(Controller):
     third_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
 
     def __init__(self, spec_tel_obj: SpecTel):
-        super().__init__(ios=[DummyIntIO(), DummyFloatIO(), SpectrometerWCCIO()])
+        super().__init__(ios=[SpectrometerWCCIO()])
 
-        self.pixel_1_index = AttrRW(Int(), io_ref=DummyIntIORef(0))
-        self.pixel_2_index = AttrRW(Int(), io_ref=DummyIntIORef(1))
-        self.pixel_3_index = AttrRW(Int(), io_ref=DummyIntIORef(2))
-        self.pixel_4_index = AttrRW(Int(), io_ref=DummyIntIORef(3))
+        self.pixel_1_index = AttrRW(Int(), initial_value=0)
+        self.pixel_2_index = AttrRW(Int(), initial_value=1)
+        self.pixel_3_index = AttrRW(Int(), initial_value=2)
+        self.pixel_4_index = AttrRW(Int(), initial_value=3)
 
-        self.pixel_1_wavelength = AttrRW(Float(), io_ref=DummyFloatIORef(200.0))
-        self.pixel_2_wavelength = AttrRW(Float(), io_ref=DummyFloatIORef(210.0))
-        self.pixel_3_wavelength = AttrRW(Float(), io_ref=DummyFloatIORef(220.0))
-        self.pixel_4_wavelength = AttrRW(Float(), io_ref=DummyFloatIORef(230.0))
+        self.pixel_1_wavelength = AttrRW(Float(), initial_value=200.0)
+        self.pixel_2_wavelength = AttrRW(Float(), initial_value=210.0)
+        self.pixel_3_wavelength = AttrRW(Float(), initial_value=220.0)
+        self.pixel_4_wavelength = AttrRW(Float(), initial_value=230.0)
 
         self.zero_order_wcc = AttrRW(
             Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 0)
