@@ -19,6 +19,13 @@ class DummySpectrometer:
     chunk_size: int = 1024
     connected: bool
 
+    # Wavelength calibration coeffiecients
+    # Stored as strings
+    # Format:
+    # (-)X.XXXXXXXe(+/-)XX
+    #             ^ exponent index
+    wccs: list[str]
+
     waiting_for_connection: asyncio.Event
 
     port: int
@@ -38,6 +45,13 @@ class DummySpectrometer:
 
         self.connected = False
         self.connection = None
+
+        self.wccs = [
+            "1.7889592e+02",
+            "3.8649029e-01",
+            "-1.8147914e-05",
+            "-2.0812843e-08",
+        ]
 
         self.waiting_for_connection = asyncio.Event()
 
@@ -121,6 +135,7 @@ class DummySpectrometer:
         request = raw_request.decode("ascii")
         response_body: str = ""
         response_delimeter: bytes = b"\x06"
+        response_footer: bytes = b"\n\r> "
 
         match request[0]:
             case "v":
@@ -134,14 +149,29 @@ class DummySpectrometer:
             case "S":
                 response_body = await self.handle_scan_request()
                 response_delimeter = b"\02"
+            case "x":
+                index, value = self.handle_set_wcc_request(request)
+                request = "x" + str(index)
+                response_delimeter = b"\n\r\r"
+                response_body = value
+                response_footer = b"\n\r"
             case "?":
                 match request[1]:
                     case "I":
                         response_body = self.handle_get_integration_time_request()
+                    case "x":
+                        response_body = self.handle_get_wcc_request(request)
+                        response_delimeter = b"\r\r\x06"
+                        response_footer = b"\n\r\n\r> "
         if response_body == "":
             response_delimeter = b"\x15"
 
-        return self.wrap_response(request, response_body, delimeter=response_delimeter)
+        return self.wrap_response(
+            request,
+            response_body,
+            delimeter=response_delimeter,
+            footer=response_footer,
+        )
 
     def handle_get_version_request(self) -> str:
         return str(self.version) + " "
@@ -213,6 +243,30 @@ class DummySpectrometer:
         # Such a low probability of happening anyway
         if self.last_scan_data[-1] == last_last_value:
             self.last_scan_data[-1] += 1
+
+    def handle_get_wcc_request(self, request: str) -> str:
+        if "\n" not in request:
+            return ""
+        # Format of request:
+        #   ?x[index]\n
+        index = int(request[2:-1])
+        return self.wccs[index - 1]
+
+    def handle_set_wcc_request(self, request: str) -> tuple[int, str]:
+        if "\n" not in request or "\r" not in request:
+            return (0, "")
+        index = int(request.split("\r")[0][1:])
+        value = request.split("\r")[1][:-1]
+
+        # Remove second character
+        # Real spectrometer does this for some reason
+        value = value[:1] + value[2:]
+        if len(value) > 14:
+            return (0, "")
+
+        self.wccs[index] = value
+
+        return (index, value)
 
     @staticmethod
     def wrap_response(
