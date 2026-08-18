@@ -9,6 +9,23 @@ from fastcsflame.spectrometer_telecommunicator import (
     UnexpectedResponseError,
 )
 
+# NOTE:
+# The indexing of WCCs may look quite inconsistent
+# However, there is a pattern
+# order: The index the coefficients variable is raised to
+#   e.g. a x^3, a has an order of 3 here
+#   Constants' orders are 0
+# index: The index in memory that a coefficient is stored at
+# for equation a x^3 + b x^2 + c x + d
+# coefficient : index
+# a             4
+# b             3
+# c             2
+# d             1
+# Conversion is simplified so that order = index -1
+# SPecTel deals in orders as they are more intuitive
+# but it must send the spectrometer index's
+
 
 @pytest.fixture(params=[0, 1, 2, 3])
 def wcc_details(request):
