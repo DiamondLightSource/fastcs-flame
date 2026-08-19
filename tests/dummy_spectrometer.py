@@ -17,7 +17,6 @@ class DummySpectrometer:
     last_scan_data: list[int]
     scan_data_length = 2044
     chunk_size: int = 1024
-    connected: bool
 
     # Wavelength calibration coeffiecients
     # Stored as strings in format:
@@ -41,7 +40,6 @@ class DummySpectrometer:
         self.last_scan_data = []
         self.randomise_scan_data()
 
-        self.connected = False
         self.connection = None
 
         self.wccs: dict[int, str] = {
@@ -80,13 +78,12 @@ class DummySpectrometer:
 
         self.connection, address = await loop.sock_accept(self.server_socket)
         self.waiting_for_connection.clear()
-        self.connected = True
         # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
         self.connection.send(TELNET_STARTUP_MESSAGE)
 
         # Recieve and process messages until the connection is closed
-        while self.connected:
+        while self.connection is not None:
             raw_last_message = await loop.sock_recv(self.connection, 1024)
             if raw_last_message.decode("ascii") == "":
                 await self.disconnect()
