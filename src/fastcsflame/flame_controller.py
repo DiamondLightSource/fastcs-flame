@@ -75,6 +75,7 @@ class FlameController(Controller):
         self.connected = AttrR(Bool())
 
         self.spec_tel_obj = SpecTel(ip, port)
+        self.spec_tel_obj.on_connected_change = lambda x: self.update_connected()
         self.file_builder = FileBuilder(
             mount_path,
         )
@@ -132,12 +133,10 @@ class FlameController(Controller):
         except BaseException as e:
             logger.warning("Failed connection attempt")
             logger.warning(e)
-        await self.update_connected()
 
     async def disconnect(self) -> None:
         await super().disconnect()
         await self.spec_tel_obj.disconnect()
-        await self.update_connected()
 
     async def update_connected(self) -> None:
         await self.connected.update(self.spec_tel_obj.connected)
