@@ -28,6 +28,8 @@ class DummySpectrometer:
     port: int
     bind: bool
 
+    listen_task: asyncio.Task | None
+
     def __init__(
         self,
         port: int,
@@ -41,6 +43,7 @@ class DummySpectrometer:
         self.randomise_scan_data()
 
         self.connection = None
+        self.listen_task = None
 
         self.wccs: dict[int, str] = {
             1: "1.7889592e+02",
@@ -54,7 +57,7 @@ class DummySpectrometer:
         self.port = port
         self.bind = bind
 
-    async def run(
+    async def start(
         self,
     ):
         """
@@ -82,6 +85,11 @@ class DummySpectrometer:
         # (indicates spectrometer is in ascii mode, not binary)
         self.connection.send(TELNET_STARTUP_MESSAGE)
 
+        self.listen_task = asyncio.create_task(self.listen())
+
+    async def listen(self):
+        loop = asyncio.get_event_loop()
+
         # Recieve and process messages until the connection is closed
         while self.connection is not None:
             raw_last_message = await loop.sock_recv(self.connection, 1024)
@@ -97,6 +105,8 @@ class DummySpectrometer:
         self.connection.close()
         self.connection = None
         self.server_socket.close()
+        if self.listen_task is not None:
+            self.listen_task.cancel()
         # This method is quite crude but it seems to have a high success rate
         # Ideally you would run recv from the socket until a b'' is recieved
         # This would also require a timeout incase nothing is ever recieved

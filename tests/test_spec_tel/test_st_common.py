@@ -23,7 +23,9 @@ async def run_dummy_spectrometer(dummy_spec_obj: DummySpectrometer):
     Guarantees disconnect will be called if an error is raised by run()
     """
     try:
-        await dummy_spec_obj.run()
+        await dummy_spec_obj.start()
+        if dummy_spec_obj.listen_task is not None:
+            await asyncio.gather(dummy_spec_obj.listen_task)
     finally:
         await dummy_spec_obj.disconnect()
 
@@ -123,4 +125,4 @@ async def test_start_connection():
     """
 
     async with start_connection() as (dummy_spec_obj, _):
-        assert dummy_spec_obj.connected
+        assert dummy_spec_obj.connection is not None
