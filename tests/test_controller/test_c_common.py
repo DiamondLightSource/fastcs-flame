@@ -97,4 +97,5 @@ async def test_controller_and_mock_objects(loguru_caplog):
     Test controller_and_mock_objects method is working
     """
 
-    await controller_and_mock_objects(loguru_caplog)
+    _, _, _, _, error_queue = await controller_and_mock_objects(loguru_caplog)
+    assert len(error_queue) == 0
