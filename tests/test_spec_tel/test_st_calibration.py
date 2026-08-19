@@ -1,4 +1,5 @@
 import math
+from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
@@ -153,4 +154,66 @@ async def test_set_wcc_bad_response(loguru_caplog):
             await spec_tel_obj.set_wcc(0, 1.0)
 
 
-# TODO: Add unit tests for _float_to_str14
+@pytest.fixture(
+    params=[
+        0.00,
+        1.00,
+        0.00000001,
+        10000000.0,
+        5.0,
+        5.5,
+        5.555555555555,
+        9.0,
+        9.9,
+        9.999999999999,
+        1.111111111111,
+        0.000000000001,
+        100000000000.0,
+        -1.00,
+        -0.00000001,
+        -10000000.0,
+        -5.0,
+        -5.5,
+        -5.555555555555,
+        -9.0,
+        -9.9,
+        -9.999999999999,
+        -1.111111111111,
+        -0.000000000001,
+        -100000000000.0,
+    ]
+)
+def sample_float(request):
+    return request.param
+
+
+@pytest.mark.asyncio
+async def test_float_to_str14(sample_float):
+    str_float = SpectrometerTelecommunicator._float_to_str14(sample_float)
+
+    rounded_sample_float = float(f"{Decimal(sample_float):.7e}")
+    assert math.isclose(rounded_sample_float, float(str_float))
+
+    # Format should be:
+    # (-)X.XXXXXXXe(-)XX
+    #             ^ exponent index
+
+    # Should have no positive signs
+    assert str_float.find("+") == -1
+
+    if sample_float < 0:
+        assert str_float[0] == "-"
+        # Taking off the - at the start makes the rest of testing easier
+        str_float = str_float[1:]
+    if abs(sample_float) < 1.0 and sample_float != 0:
+        assert str_float[10] == "-"
+        str_float = str_float[:10] + str_float[11:]
+
+    # Should be no negative signs left
+    assert str_float.find("-") == -1
+
+    assert len(str_float) == 12
+    # Check decimal point position
+    assert str_float[1] == "."
+    # Check exponent sign position
+    assert str_float[9] == "e"
