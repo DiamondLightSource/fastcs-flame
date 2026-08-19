@@ -30,6 +30,7 @@ async def controller_and_mock_objects(
     file_builder_mock: Mock | None = None,
     timeout: int = 11,
     start_poll_period: int = 1,
+    scan_data_length: int = 0,
 ) -> tuple[asyncio.Task, FlameController, AsyncMock, Mock, list[BaseException]]:
     """
     Creates a flame controller and starts FastCS with mock objects
@@ -72,6 +73,7 @@ async def controller_and_mock_objects(
                 0,
                 mount_path="",
                 default_file_name="",
+                scan_data_length=scan_data_length,
             )
             flame_controller.set_path(["FLAME"])
             fastcs = FastCS(flame_controller, [])
