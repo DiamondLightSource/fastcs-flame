@@ -8,6 +8,25 @@ from fastcsflame.spectrometer_telecommunicator import UnexpectedResponseError
 
 
 @pytest.mark.asyncio
+async def test_initialisation(loguru_caplog):
+    """
+    Test setting the lamp PV
+    """
+
+    spec_tel_mock = AsyncMock()
+
+    (
+        _,
+        _,
+        spec_tel_mock,
+        _,
+        _,
+    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    spec_tel_mock.set_lamp.assert_awaited_once_with(True)
+
+
+@pytest.mark.asyncio
 async def test_set_lamp(loguru_caplog):
     """
     Test setting the lamp PV
@@ -22,6 +41,8 @@ async def test_set_lamp(loguru_caplog):
         _,
         _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+
+    spec_tel_mock.reset_mock()
 
     advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
     assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
