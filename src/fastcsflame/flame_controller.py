@@ -72,7 +72,7 @@ class FlameController(Controller):
         )
 
         self.scan_data_length = scan_data_length
-        self.connected = AttrR(Bool())
+        self.connected = AttrR(Bool(), initial_value=False)
 
         self.spec_tel_obj = SpecTel(ip, port)
         self.spec_tel_obj.on_connected_change = lambda x: self.update_connected()
@@ -139,6 +139,8 @@ class FlameController(Controller):
         await self.spec_tel_obj.disconnect()
 
     async def update_connected(self) -> None:
+        print("updating connected")
+        print(self.spec_tel_obj.connected)
         await self.connected.update(self.spec_tel_obj.connected)
 
     @command()
