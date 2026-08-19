@@ -95,9 +95,9 @@ class SpectrometerTelecommunicator:
                 self.socket_obj.close()
             raise e
 
-        await self._set_ascii_mode()
-
         self.connected = True
+
+        await self._set_ascii_mode()
 
         if self.disconnect_listen_task is None:
             self.disconnect_listen_task = asyncio.create_task(
