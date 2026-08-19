@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager, contextmanager
 from decimal import Decimal
 from socket import socket
@@ -36,6 +37,8 @@ class SpectrometerTelecommunicator:
 
     socket_obj: socket
     connected: bool
+    on_connected_change: Callable[[bool], Coroutine[None, None, None]] | None
+    on_connected_task: asyncio.Task
 
     # Used to prevent simulatneous messages to the device
     message_lock: asyncio.Lock
@@ -64,9 +67,17 @@ class SpectrometerTelecommunicator:
         self.recieve_buffer_size = recieve_buffer_size
         self.timeout = timeout
         self.connected = False
+        self.on_connected_change = None
         self.disconnect_listen_task = None
 
         self.message_lock = asyncio.Lock()
+
+    async def set_connected(self, value: bool):
+        self.connected = value
+        if self.on_connected_change is not None:
+            self.on_connected_task = asyncio.create_task(
+                self.on_connected_change(value)
+            )
 
     async def connect(self):
         """
@@ -95,7 +106,7 @@ class SpectrometerTelecommunicator:
                 self.socket_obj.close()
             raise e
 
-        self.connected = True
+        await self.set_connected(True)
 
         await self._set_ascii_mode()
 
@@ -258,7 +269,7 @@ class SpectrometerTelecommunicator:
             return
         if self.disconnect_listen_task is not None and cancel_disconnect_task:
             self.disconnect_listen_task.cancel()
-        self.connected = False
+        await self.set_connected(False)
         self.socket_obj.close()
         # This method is quite crude but it seems to have a high success rate
         # Ideally you would run recv from the socket until a b'' is recieved
