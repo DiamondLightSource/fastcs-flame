@@ -481,9 +481,11 @@ class SpectrometerTelecommunicator:
     def _float_to_str14(value: float) -> str:
         scientific_notation_str = f"{Decimal(value):.7e}"
         length = len(scientific_notation_str)
-        # Format:
+        # Format of scientific notation:
         # (-)X.XXXXXXXe(+/-)(X)X
         #             ^ exponent index
+        # Goal format:
+        # (-)X.XXXXXXXe(-)XX
         exponent_index = scientific_notation_str.find("e")
         # Exponent must be made up of 2 digits
         # Python Decimal cannot do this for us

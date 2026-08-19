@@ -196,7 +196,6 @@ async def test_float_to_str14(sample_float):
 
     # Format should be:
     # (-)X.XXXXXXXe(-)XX
-    #             ^ exponent index
 
     # Should have no positive signs
     assert str_float.find("+") == -1

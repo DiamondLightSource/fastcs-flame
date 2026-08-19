@@ -20,10 +20,8 @@ class DummySpectrometer:
     connected: bool
 
     # Wavelength calibration coeffiecients
-    # Stored as strings
-    # Format:
-    # (-)X.XXXXXXXe(+/-)XX
-    #             ^ exponent index
+    # Stored as strings in format:
+    # (-)X.XXXXXXXe(-)XX
     wccs: dict[int, str]
 
     waiting_for_connection: asyncio.Event
