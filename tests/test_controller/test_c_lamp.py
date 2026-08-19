@@ -25,8 +25,8 @@ async def test_set_lamp(loguru_caplog):
 
     advanced_subcontroller = flame_controller.sub_controllers["Advanced"]
     assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
-    await advanced_subcontroller.lamp.put(True)
-    spec_tel_mock.set_lamp.assert_awaited_once_with(True)
+    await advanced_subcontroller.lamp.put(False)
+    spec_tel_mock.set_lamp.assert_awaited_once_with(False)
 
 
 @pytest.mark.asyncio
