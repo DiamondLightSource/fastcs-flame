@@ -72,8 +72,6 @@ class FlameController(Controller):
         )
 
         self.scan_data_length = scan_data_length
-
-        self.scan_data_length = scan_data_length
         self.connected = AttrR(Bool())
 
         self.spec_tel_obj = SpecTel(ip, port)
