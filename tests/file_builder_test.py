@@ -79,8 +79,8 @@ def h5file(tmp_path, request):
 
     Path(str(tmp_path) + params.file_path).mkdir(parents=True, exist_ok=True)
 
-    fb = FileBuilder(tmp_path, params.wavelength_array)
-    fb.create_file(params.file_path, params.file_name)
+    fb = FileBuilder(tmp_path)
+    fb.create_file(params.file_path, params.file_name, params.wavelength_array)
 
     params.full_path = str(tmp_path) + params.file_path
 
@@ -140,16 +140,16 @@ def test_make_multiple_files(tmp_path):
     Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
     Path(str(tmp_path) + EXTENDED_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
 
-    fb = FileBuilder(str(tmp_path), BASIC_WAVELENGTH_ARRAY)
+    fb = FileBuilder(str(tmp_path))
 
-    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME, BASIC_WAVELENGTH_ARRAY)
     fb.add_scan(BASIC_DATA_ARRAY[0])
     fb.close_file()
 
     file_1 = h5py.File(f"{str(tmp_path) + BASIC_DUMMY_PATH}/{BASIC_DUMMY_NAME}.h5", "r")
     assert isinstance(file_1, h5py.File)
 
-    fb.create_file(EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME)
+    fb.create_file(EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME, BASIC_WAVELENGTH_ARRAY)
     fb.add_scan(BASIC_DATA_ARRAY[0])
     fb.close_file()
 
@@ -166,16 +166,20 @@ def test_open_file_error(tmp_path):
     Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
     Path(str(tmp_path) + EXTENDED_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
 
-    fb = FileBuilder(str(tmp_path), BASIC_WAVELENGTH_ARRAY)
+    fb = FileBuilder(str(tmp_path))
 
-    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME, BASIC_WAVELENGTH_ARRAY)
 
     with pytest.raises(OpenFileError):
-        fb.create_file(str(tmp_path) + EXTENDED_DUMMY_PATH, ALTERNATE_DUMMY_NAME)
+        fb.create_file(
+            str(tmp_path) + EXTENDED_DUMMY_PATH,
+            ALTERNATE_DUMMY_NAME,
+            BASIC_WAVELENGTH_ARRAY,
+        )
 
 
 def test_no_open_file_error_add_scan(tmp_path):
-    fb = FileBuilder(str(tmp_path), BASIC_WAVELENGTH_ARRAY)
+    fb = FileBuilder(str(tmp_path))
 
     with pytest.raises(NoOpenFileError):
         fb.add_scan(BASIC_DATA_ARRAY[0])
@@ -186,9 +190,9 @@ def test_no_open_file_error_add_scan(tmp_path):
 def _test_no_data_path_error_add_scan(tmp_path):
     Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
 
-    fb = FileBuilder(str(tmp_path), BASIC_WAVELENGTH_ARRAY)
+    fb = FileBuilder(str(tmp_path))
 
-    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME, BASIC_WAVELENGTH_ARRAY)
 
     if fb.file is not None:
         fb.file["entry/data/data"] = None
@@ -200,16 +204,16 @@ def _test_no_data_path_error_add_scan(tmp_path):
 def test_scan_length_error_add_scan(tmp_path):
     Path(str(tmp_path) + BASIC_DUMMY_PATH).mkdir(parents=True, exist_ok=True)
 
-    fb = FileBuilder(str(tmp_path), BASIC_WAVELENGTH_ARRAY)
+    fb = FileBuilder(str(tmp_path))
 
-    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME)
+    fb.create_file(BASIC_DUMMY_PATH, BASIC_DUMMY_NAME, BASIC_WAVELENGTH_ARRAY)
 
     with pytest.raises(ScanLengthError):
         fb.add_scan(ALTERNATE_DATA_ARRAY)
 
 
 def test_no_open_file_error_close_file(tmp_path):
-    fb = FileBuilder(str(tmp_path), BASIC_WAVELENGTH_ARRAY)
+    fb = FileBuilder(str(tmp_path))
 
     with pytest.raises(NoOpenFileError):
         fb.close_file()
