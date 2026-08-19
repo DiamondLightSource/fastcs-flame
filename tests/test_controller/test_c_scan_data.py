@@ -31,10 +31,14 @@ async def test_initialisation(loguru_caplog):
         spec_tel_mock,
         _,
         _,
-    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+    ) = await controller_and_mock_objects(
+        loguru_caplog, spec_tel_mock=spec_tel_mock, scan_data_length=10
+    )
 
     # Make sure initial scan data matches spec tel object
     assert lists_equal(flame_controller.scan_data.get(), spec_tel_mock.last_scan_data)
+    scan_data_from_table = [v[0] for v in flame_controller.scan_data_table.get()]
+    assert lists_equal(scan_data_from_table, flame_controller.scan_data.get())
 
 
 @pytest.mark.asyncio
@@ -61,7 +65,9 @@ async def test_scan_data_command(loguru_caplog):
         spec_tel_mock,
         _,
         _,
-    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+    ) = await controller_and_mock_objects(
+        loguru_caplog, spec_tel_mock=spec_tel_mock, scan_data_length=10
+    )
 
     old_scan_data = flame_controller.scan_data.get()
     await flame_controller.single_scan()
@@ -91,7 +97,9 @@ async def _test_bad_last_scan_data_get(loguru_caplog):
         spec_tel_mock,
         _,
         error_queue,
-    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+    ) = await controller_and_mock_objects(
+        loguru_caplog, spec_tel_mock=spec_tel_mock, scan_data_length=10
+    )
 
     await asyncio.gather(task_pointer)
 
@@ -104,16 +112,15 @@ async def test_bad_scan_command(loguru_caplog):
     Test recieving an unexpected response from a scan trigger
     """
     spec_tel_mock = AsyncMock()
-
     spec_tel_mock.last_scan_data = INITIAL_DUMMY_SCAN_DATA
 
-    async def get_scan_data():
+    async def get_last_scan():
         return spec_tel_mock.last_scan_data
 
     def scan():
         raise UnexpectedResponseError
 
-    spec_tel_mock.get_scan_data = get_scan_data
+    spec_tel_mock.get_last_scan = get_last_scan
     spec_tel_mock.scan = scan
 
     (
@@ -121,8 +128,10 @@ async def test_bad_scan_command(loguru_caplog):
         flame_controller,
         spec_tel_mock,
         _,
-        _,
-    ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
+        error_queue,
+    ) = await controller_and_mock_objects(
+        loguru_caplog, spec_tel_mock=spec_tel_mock, scan_data_length=10
+    )
 
     await flame_controller.single_scan()
 
