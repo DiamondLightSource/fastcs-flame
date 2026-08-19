@@ -161,6 +161,8 @@ class DummySpectrometer:
                         response_body = self.handle_get_wcc_request(request)
                         response_delimeter = b"\r\r\x06"
                         response_footer = b"\n\r\n\r> "
+                    case "B":
+                        response_body = self.handle_binary_mode_request()
         if response_body == "":
             response_delimeter = b"\x15"
 
@@ -173,6 +175,9 @@ class DummySpectrometer:
 
     def handle_get_version_request(self) -> str:
         return str(self.version) + " "
+
+    def handle_binary_mode_request(self) -> str:
+        return "0"
 
     def handle_get_integration_time_request(self) -> str:
         return str(self.integration_time) + " "
