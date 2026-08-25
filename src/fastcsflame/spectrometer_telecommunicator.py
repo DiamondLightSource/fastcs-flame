@@ -505,10 +505,6 @@ class SpectrometerTelecommunicator:
             await self._send_query("?x" + str(order + 1) + "\n")
         )
 
-        if response[-2:] == "\n\r":
-            response = response[:-2]
-        else:
-            logger.warning("No trailing characters found on WCC query")
         try:
             return float(response)
         except ValueError as e:
