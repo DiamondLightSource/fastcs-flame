@@ -139,8 +139,6 @@ class FlameController(Controller):
         await self.spec_tel_obj.disconnect()
 
     async def update_connected(self) -> None:
-        print("updating connected")
-        print(self.spec_tel_obj.connected)
         await self.connected.update(self.spec_tel_obj.connected)
 
     @command()

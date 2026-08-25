@@ -222,7 +222,7 @@ class SpectrometerTelecommunicator:
         if message == b"":
             await self.disconnect(cancel_disconnect_task=False)
         else:
-            print(f"Unexpected message from device: {message}")
+            logger.error(f"Unexpected message from device: {message}")
 
     @contextmanager
     def pause_disconnect_listening(self):
@@ -344,7 +344,11 @@ class SpectrometerTelecommunicator:
         # Disconnect listen task should alays be cancelled before running this method
         # Cant do it inside the method as it may be too late
         if self.disconnect_listen_task is not None:
-            print("raise exception")
+            logger.error(
+                "Disconnect listen task must be paused when listening for messages\n"
+                + "Stopped listening for response"
+            )
+            return b""
 
         loop = asyncio.get_event_loop()
         if not self.connected:
@@ -366,7 +370,10 @@ class SpectrometerTelecommunicator:
             if last_response_raw_section.rfind(end_signal) != -1:
                 return response_raw
 
-        print("maximum message length exceeded")
+        logger.warning(
+            f"Message exceeded maximum message chunk length {maximum_messages}\n"
+            + f"Message (bytes): {response_raw}"
+        )
         return response_raw
 
     @staticmethod
@@ -489,7 +496,6 @@ class SpectrometerTelecommunicator:
         if len(scan_result_str.split(" ")) < 8:
             raise ValueError
         data = [int(s) for s in scan_result_str.split(" ")[7:-1]]
-        print(data)
         return data
 
     async def set_lamp(self, on: bool):
