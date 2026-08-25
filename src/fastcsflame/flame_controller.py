@@ -49,7 +49,7 @@ class FlameController(Controller):
         mount_path: str = "/",
         default_file_path: str = "dls/b21/data",
         default_file_name: str = "data",
-        scan_data_length=2044,
+        scan_data_length=2047,
     ):
         """
         Creates controller object
