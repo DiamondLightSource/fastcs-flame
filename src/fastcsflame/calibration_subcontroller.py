@@ -44,16 +44,16 @@ class CalibrationSubcontroller(Controller):
         self.pixel_4_wavelength = AttrRW(Float(), initial_value=230.0)
 
         self.zero_order_wcc = AttrRW(
-            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 0)
+            Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 0)
         )
         self.first_order_wcc = AttrRW(
-            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 1)
+            Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 1)
         )
         self.second_order_wcc = AttrRW(
-            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 2)
+            Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 2)
         )
         self.third_order_wcc = AttrRW(
-            Float(), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 3)
+            Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 3)
         )
 
     @command()
