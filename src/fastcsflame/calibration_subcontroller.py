@@ -1,3 +1,5 @@
+from collections.abc import Callable, Coroutine
+
 from fastcs.attributes import AttrRW
 from fastcs.controllers import Controller
 from fastcs.datatypes import Float, Int
@@ -30,7 +32,11 @@ class CalibrationSubcontroller(Controller):
     second_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
     third_order_wcc: AttrRW[float, SpectrommeterWCCIORef]
 
-    def __init__(self, spec_tel_obj: SpecTel):
+    def __init__(
+        self,
+        spec_tel_obj: SpecTel,
+        wcc_update_callback: Callable[[float], Coroutine[None, None, None]],
+    ):
         super().__init__(ios=[SpectrometerWCCIO()])
 
         self.pixel_1_index = AttrRW(Int(), initial_value=0)
@@ -46,15 +52,19 @@ class CalibrationSubcontroller(Controller):
         self.zero_order_wcc = AttrRW(
             Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 0)
         )
+        self.zero_order_wcc.add_on_update_callback(wcc_update_callback)
         self.first_order_wcc = AttrRW(
             Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 1)
         )
+        self.first_order_wcc.add_on_update_callback(wcc_update_callback)
         self.second_order_wcc = AttrRW(
             Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 2)
         )
+        self.second_order_wcc.add_on_update_callback(wcc_update_callback)
         self.third_order_wcc = AttrRW(
             Float(prec=12), io_ref=SpectrommeterWCCIORef(spec_tel_obj, 3)
         )
+        self.third_order_wcc.add_on_update_callback(wcc_update_callback)
 
     @command()
     async def auto_calibrate(self):

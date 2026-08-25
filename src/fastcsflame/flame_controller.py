@@ -94,7 +94,7 @@ class FlameController(Controller):
         self.scan_data_table = AttrR(
             Table([("intensities", np.int64), ("wavelengths", np.float64)])
         )
-        self.scan_data.add_on_update_callback(self.update_scan_data_table)
+        self.scan_data.add_on_update_callback(lambda x: self.update_scan_data_table())
 
         self.capture = AttrRW(Bool(), initial_value=False)
         self.capture.add_on_update_callback(self.on_capture_change)
@@ -108,10 +108,14 @@ class FlameController(Controller):
             AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
         )
         self.add_sub_controller(
-            "Calibration", CalibrationSubcontroller(self.spec_tel_obj)
+            "Calibration",
+            CalibrationSubcontroller(
+                self.spec_tel_obj, lambda x: self.update_scan_data_table()
+            ),
         )
 
-    async def update_scan_data_table(self, scan_data: np.ndarray):
+    async def update_scan_data_table(self):
+        scan_data = self.scan_data.get()
         calibration_subcontroller = self.sub_controllers["Calibration"]
         assert isinstance(calibration_subcontroller, CalibrationSubcontroller)
         wavelengths = calibration_subcontroller.get_pixel_wavelengths(
