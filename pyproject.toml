@@ -13,7 +13,7 @@ classifiers = [
 ]
 description = "EPICS driver for the OceanOptics flame mini spectrometer"
 dependencies = [
-    "fastcs[epicsca]",
+    "fastcs[epicspva]",
     "h5py",
     "numpy",
     "sympy",
