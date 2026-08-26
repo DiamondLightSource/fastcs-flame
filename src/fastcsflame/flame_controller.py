@@ -1,18 +1,16 @@
+import asyncio
+
 import numpy as np
 from fastcs.attributes import AttrR, AttrRW
 from fastcs.controllers import Controller
-from fastcs.datatypes import Bool, Int, String, Waveform
+from fastcs.datatypes import Bool, String, Table, Waveform
 from fastcs.logging import logger
 from fastcs.methods.command import command
 
+from fastcsflame.advanced_subcontroller import AdvancedSubcontroller
+from fastcsflame.calibration_subcontroller import CalibrationSubcontroller
 from fastcsflame.file_builder import FileBuilder
 from fastcsflame.flame_controller_attributes import (
-    DummyBoolIO,
-    DummyBoolIORef,
-    DummyStrIO,
-    DummyStrIORef,
-    IntegrationTimeIO,
-    IntegrationTimeIORef,
     SpectrometerScanIO,
     SpectrometerScanIORef,
 )
@@ -29,18 +27,20 @@ class FlameController(Controller):
 
     spec_tel_obj: SpecTel
     file_builder: FileBuilder
-
-    integration_time: AttrRW[int, IntegrationTimeIORef]
+    connected: AttrR[bool]
     # Scan data from spectrometer
     scan_data: AttrR[np.ndarray, SpectrometerScanIORef]
+    scan_data_table: AttrR[np.ndarray]
 
-    capture: AttrRW[bool, DummyBoolIORef]
+    capture: AttrRW[bool]
     # Where h5 files will be saved within the mounted directory
-    file_path: AttrRW[str, DummyStrIORef]
+    file_path: AttrRW[str]
     # Name of saved h5 file (not including extension)
-    file_name: AttrRW[str, DummyStrIORef]
+    file_name: AttrRW[str]
 
-    scan_in_progress: AttrR[bool, DummyBoolIORef]
+    scan_in_progress: AttrR[bool]
+
+    scan_data_length: int
 
     def __init__(
         self,
@@ -49,9 +49,7 @@ class FlameController(Controller):
         mount_path: str = "/",
         default_file_path: str = "dls/b21/data",
         default_file_name: str = "data",
-        lowest_wavelength=190,
-        highest_wavelength=1100,
-        scan_data_length=2044,
+        scan_data_length=2047,
     ):
         """
         Creates controller object
@@ -69,37 +67,88 @@ class FlameController(Controller):
         """
         super().__init__(
             ios=[
-                IntegrationTimeIO(),
-                DummyBoolIO(),
-                DummyStrIO(),
                 SpectrometerScanIO(),
             ]
         )
 
+        self.scan_data_length = scan_data_length
+        self.connected = AttrR(Bool(), initial_value=False)
+
         self.spec_tel_obj = SpecTel(ip, port)
+        self.spec_tel_obj.on_connected_change = lambda x: self.update_connected()
         self.file_builder = FileBuilder(
             mount_path,
-            np.linspace(lowest_wavelength, highest_wavelength, scan_data_length),
         )
 
-        self.integration_time = AttrRW(
-            Int(), io_ref=IntegrationTimeIORef(self.spec_tel_obj)
-        )
         self.scan_data = AttrR(
-            Waveform(int, shape=(scan_data_length,)),
+            Waveform(int, shape=(self.scan_data_length,)),
             io_ref=SpectrometerScanIORef(self.spec_tel_obj),
+            description="""
+                Graphical view of spectra intensities
+                NOTE: x axis values do NOT represent wavelengths
+                To identify wavelengths see TabularScanData PV OR check output file
+                x value of a recorded intensity represents the column of that intensity
+                in scan data table
+            """,
+        )
+        self.scan_data_table = AttrR(
+            Table([("intensities", np.int64), ("wavelengths", np.float64)])
+        )
+        self.scan_data.add_on_update_callback(lambda x: self.update_scan_data_table())
+
+        self.capture = AttrRW(Bool(), initial_value=False)
+        self.capture.add_on_update_callback(self.on_capture_change)
+        self.file_path = AttrRW(String(), initial_value=default_file_path)
+        self.file_name = AttrRW(String(), initial_value=default_file_name)
+
+        self.scan_in_progress = AttrR(Bool(), initial_value=False)
+
+        self.add_sub_controller(
+            "Advanced",
+            AdvancedSubcontroller(self.spec_tel_obj, self.connect, self.disconnect),
+        )
+        self.add_sub_controller(
+            "Calibration",
+            CalibrationSubcontroller(
+                self.spec_tel_obj, lambda x: self.update_scan_data_table()
+            ),
         )
 
-        self.capture = AttrRW(Bool(), io_ref=DummyBoolIORef(False))
-        self.capture.add_on_update_callback(self.on_capture_change)
-        self.file_path = AttrRW(String(), io_ref=DummyStrIORef(default_file_path))
-        self.file_name = AttrRW(String(), io_ref=DummyStrIORef(default_file_name))
+    async def update_scan_data_table(self):
+        scan_data = self.scan_data.get()
+        calibration_subcontroller = self.sub_controllers["Calibration"]
+        assert isinstance(calibration_subcontroller, CalibrationSubcontroller)
+        wavelengths = calibration_subcontroller.get_pixel_wavelengths(
+            self.scan_data_length
+        )
+        data = np.array(
+            [(scan_data[i], wavelengths[i]) for i in range(self.scan_data_length)],
+            dtype=[("intensities", np.int64), ("wavelengths", np.float64)],
+        )
 
-        self.scan_in_progress = AttrR(Bool(), io_ref=DummyBoolIORef(False))
+        await self.scan_data_table.update(data)
 
     async def connect(self):
         await super().connect()
-        await self.spec_tel_obj.connect()
+        try:
+            await self.spec_tel_obj.connect()
+
+            advanced_subcontroller = self.sub_controllers["Advanced"]
+            assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+            # Turn lamp (incase it wasnt already)
+            asyncio.create_task(advanced_subcontroller.lamp.put(True))
+        # May cause issues if spec_tel_obj is updated separately from this object
+        # Shouldnt happen due to compositional relationship
+        except BaseException as e:
+            logger.warning("Failed connection attempt")
+            logger.warning(e)
+
+    async def disconnect(self) -> None:
+        await super().disconnect()
+        await self.spec_tel_obj.disconnect()
+
+    async def update_connected(self) -> None:
+        await self.connected.update(self.spec_tel_obj.connected)
 
     @command()
     async def single_scan(self):
@@ -128,7 +177,15 @@ class FlameController(Controller):
         Creates a new file to capture scan data in when set to true
         Closes file when set to false
         """
+        calibration_subcontroller = self.sub_controllers["Calibration"]
+        assert isinstance(calibration_subcontroller, CalibrationSubcontroller)
+        wavelengths = np.array(
+            calibration_subcontroller.get_pixel_wavelengths(self.scan_data_length)
+        )
+
         if capture:
-            self.file_builder.create_file(self.file_path.get(), self.file_name.get())
+            self.file_builder.create_file(
+                self.file_path.get(), self.file_name.get(), wavelengths
+            )
         else:
             self.file_builder.close_file()

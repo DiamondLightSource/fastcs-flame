@@ -112,73 +112,73 @@ class SpectrometerScanIO(AttributeIO[np.ndarray, SpectrometerScanIORef]):
             )
 
 
+# NOTE: FastCS Float's are not high enough precision to represent all coefficients
+# Investigate if this a FastCS issue or an EPICS one
 @dataclass
-class DummyBoolIORef(AttributeIORef):
-    """
-    Reference for a int attribute on a FastCS controller that
-    is not a property of the device
-    """
+class SpectrommeterWCCIORef(AttributeIORef):
+    spec_tel_obj: SpecTel
+    order: int
 
-    default_value: bool
-
-    def __init__(self, default_value: bool):
+    def __init__(self, spec_tel_obj: SpecTel, order: int):
         super().__init__(update_period=ONCE)
-        self.default_value = default_value
+
+        self.spec_tel_obj = spec_tel_obj
+        self.order = order
 
 
-class DummyBoolIO(AttributeIO[bool, DummyBoolIORef]):
-    """
-    IO for integer attribtues on a FastCS controller that are
-    not properties of the device
-    """
+class SpectrometerWCCIO(AttributeIO[float, SpectrommeterWCCIORef]):
+    async def update(self, attr: AttrR[float, SpectrommeterWCCIORef]):
+        spec_tel_obj = attr.io_ref.spec_tel_obj
 
-    async def update(self, attr: AttrR[bool, DummyBoolIORef]):
-        """
-        Sets the default value for the attribute
-        SHOULD ONLY BE CALLED ONCE (Ref should habe update_period=ONCE)
-        """
+        try:
+            scan_data = await spec_tel_obj.get_wcc(attr.io_ref.order)
 
-        await attr.update(attr.io_ref.default_value)
+            await attr.update(scan_data)
+        except UnexpectedResponseError as _:
+            pass
+            # logger.warning(
+            #     "Spectrometer gave unexpected response from scan data query: "
+            #     + f"\n{e.args[0]}"
+            #     + "\nScanData PV not updated"
+            # )
 
-    async def send(self, attr: AttrW[bool, DummyBoolIORef], value: bool):
+    async def send(self, attr: AttrW[float, SpectrommeterWCCIORef], value: float):
+        spec_tel_obj = attr.io_ref.spec_tel_obj
+        try:
+            await spec_tel_obj.set_wcc(attr.io_ref.order, value)
+        except UnexpectedResponseError as e:
+            logger.warning("Recieved unexpected response from wcc set request")
+            logger.warning(e)
 
         # update RBV to match written value
         if isinstance(attr, AttrRW):
-            await attr.update(value)
+            await self.update(attr)
 
 
-# Could this and DummyIntIORef be 1 generic class??
-# Or would this break fastcs??
 @dataclass
-class DummyStrIORef(AttributeIORef):
+class LampActiveIORef(AttributeIORef):
     """
-    Reference for a string attribute on a FastCS controller that
-    is not a property of the device
+    Reference for lamp attribute on a FastCS controller
     """
 
-    default_value: str
+    spec_tel_obj: SpecTel
 
-    def __init__(self, default_value: str):
+    def __init__(self, spec_tel_obj: SpecTel):
         super().__init__(update_period=ONCE)
-        self.default_value = default_value
+
+        self.spec_tel_obj = spec_tel_obj
 
 
-class DummyStrIO(AttributeIO[str, DummyStrIORef]):
+class LampActiveIO(AttributeIO[bool, LampActiveIORef]):
     """
-    IO for string attribtues on a FastCS controller that are
-    not properties of the device
+    IO for lamp attributes on a FastCS controller
     """
 
-    async def update(self, attr: AttrR[str, DummyStrIORef]):
+    def __init__(self):
+        super().__init__()
+
+    async def send(self, attr: AttrW[bool, LampActiveIORef], value: bool):
         """
-        Sets the default value for the attribute
-        SHOULD ONLY BE CALLED ONCE (Ref should habe update_period=ONCE)
+        Updates lamp active value on controller
         """
-
-        await attr.update(attr.io_ref.default_value)
-
-    async def send(self, attr: AttrW[str, DummyStrIORef], value: str):
-
-        # update RBV to match written value
-        if isinstance(attr, AttrRW):
-            await attr.update(value)
+        await attr.io_ref.spec_tel_obj.set_lamp(value)

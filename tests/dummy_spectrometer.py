@@ -1,6 +1,9 @@
 import asyncio
 import random
+import socket as s
 from socket import socket
+
+TELNET_STARTUP_MESSAGE = b"\xff\xfa,k\x0f\xff\xf0"
 
 
 class DummySpectrometer:
@@ -8,26 +11,63 @@ class DummySpectrometer:
 
     version: int = 4110
     integration_time: int = 10
+    # bool but represented as an int on
+    # device and in transmission
+    lamp: int = 0
     last_scan_data: list[int]
     scan_data_length = 2044
     chunk_size: int = 1024
 
-    def __init__(self, port: int, bind=True):
+    # Wavelength calibration coeffiecients
+    # Stored as strings in format:
+    # (-)X.XXXXXXXe(-)XX
+    wccs: dict[int, str]
+
+    waiting_for_connection: asyncio.Event
+
+    port: int
+    bind: bool
+
+    listen_task: asyncio.Task | None
+
+    def __init__(
+        self,
+        port: int,
+        bind=True,
+    ):
         """
         Binds a socket to a port on localhost (127.0.0.1)
         port: Port to bind socket to
         """
-        if bind:
-            self.server_socket = socket()
-            self.server_socket.bind(("", port))
         self.last_scan_data = []
         self.randomise_scan_data()
 
-    async def start(self, startup_message: bytes = b"\xff\xfa,k\x0f\xff\xf0"):
+        self.connection = None
+        self.listen_task = None
+
+        self.wccs: dict[int, str] = {
+            1: "1.7889592e+02",
+            2: "3.8649029e-01",
+            3: "-1.8147914e-05",
+            4: "-2.0812843e-08",
+        }
+
+        self.waiting_for_connection = asyncio.Event()
+
+        self.port = port
+        self.bind = bind
+
+    async def start(
+        self,
+    ):
         """
         Starts the server listening process
         This will respond to incomming requests until a "" is sent
         """
+        self.server_socket = socket()
+        self.server_socket.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
+        if self.bind:
+            self.server_socket.bind(("", self.port))
 
         # Listen for 1 connection
         self.server_socket.listen(1)
@@ -36,18 +76,43 @@ class DummySpectrometer:
 
         loop = asyncio.get_event_loop()
         # Do we also need to setblocking for connection??
-        connection, address = await loop.sock_accept(self.server_socket)
+
+        self.waiting_for_connection.set()
+
+        self.connection, address = await loop.sock_accept(self.server_socket)
+        self.waiting_for_connection.clear()
         # Send initial message like spectrometer
         # (indicates spectrometer is in ascii mode, not binary)
-        connection.send(startup_message)
+        self.connection.send(TELNET_STARTUP_MESSAGE)
+
+        self.listen_task = asyncio.create_task(self.listen())
+
+    async def listen(self):
+        loop = asyncio.get_event_loop()
 
         # Recieve and process messages until the connection is closed
-        while True:
-            raw_last_message = await loop.sock_recv(connection, 1024)
+        while self.connection is not None:
+            raw_last_message = await loop.sock_recv(self.connection, 1024)
             if raw_last_message.decode("ascii") == "":
+                await self.disconnect()
                 return
             response = await self._handle_request(raw_last_message)
-            self._respond_in_chunks(connection, response)
+            self._respond_in_chunks(self.connection, response)
+
+    async def disconnect(self):
+        if self.connection is None:
+            return
+        self.connection.close()
+        self.connection = None
+        self.server_socket.close()
+        if self.listen_task is not None:
+            self.listen_task.cancel()
+        # This method is quite crude but it seems to have a high success rate
+        # Ideally you would run recv from the socket until a b'' is recieved
+        # This would also require a timeout incase nothing is ever recieved
+        # And im not sure what you would even do in this case when you already
+        # tried to close it??
+        await asyncio.sleep(0.5)
 
     def _respond_in_chunks(self, connection: socket, response: bytes):
         """
@@ -75,28 +140,51 @@ class DummySpectrometer:
         request = raw_request.decode("ascii")
         response_body: str = ""
         response_delimeter: bytes = b"\x06"
+        response_footer: bytes = b"\n\r> "
 
         match request[0]:
             case "v":
                 response_body = self.handle_get_version_request()
             case "I":
                 response_body = self.handle_set_integration_time_request(request)
+            case "J":
+                response_body = self.handle_set_lamp_request(request)
             case "Z":
                 response_body = await self.handle_get_last_scan_request()
             case "S":
                 response_body = await self.handle_scan_request()
                 response_delimeter = b"\02"
+            case "x":
+                index, value = self.handle_set_wcc_request(request)
+                request = "x" + str(index)
+                response_delimeter = b"\n\r\r"
+                response_body = value
+                response_footer = b"\n\r\n\r> "
             case "?":
                 match request[1]:
                     case "I":
                         response_body = self.handle_get_integration_time_request()
+                    case "x":
+                        response_body = self.handle_get_wcc_request(request)
+                        response_delimeter = b"\r\r\x06"
+                        response_footer = b"\n\r\n\r> "
+                    case "B":
+                        response_body = self.handle_binary_mode_request()
         if response_body == "":
             response_delimeter = b"\x15"
 
-        return self.wrap_response(request, response_body, delimeter=response_delimeter)
+        return self.wrap_response(
+            request,
+            response_body,
+            delimeter=response_delimeter,
+            footer=response_footer,
+        )
 
     def handle_get_version_request(self) -> str:
         return str(self.version) + " "
+
+    def handle_binary_mode_request(self) -> str:
+        return "0"
 
     def handle_get_integration_time_request(self) -> str:
         return str(self.integration_time) + " "
@@ -107,6 +195,14 @@ class DummySpectrometer:
             return ""
         new_integration_time = int(request[1:].split("\n")[0].rstrip())
         self.integration_time = new_integration_time
+        return " "
+
+    def handle_set_lamp_request(self, request: str) -> str:
+        if "\n" not in request:
+            # TODO: make sure this is correct
+            return ""
+        new_lamp = int(request[1:].split("\n")[0].rstrip())
+        self.lamp = new_lamp
         return " "
 
     async def handle_get_last_scan_request(self) -> str:
@@ -157,6 +253,30 @@ class DummySpectrometer:
         # Such a low probability of happening anyway
         if self.last_scan_data[-1] == last_last_value:
             self.last_scan_data[-1] += 1
+
+    def handle_get_wcc_request(self, request: str) -> str:
+        if "\n" not in request:
+            return ""
+        # Format of request:
+        #   ?x[index]\n
+        index = int(request[2:-1])
+        return self.wccs[index]
+
+    def handle_set_wcc_request(self, request: str) -> tuple[int, str]:
+        if "\n" not in request or "\r" not in request:
+            return (0, "")
+        index = int(request.split("\r")[0][1:])
+        value = request.split("\r")[1][:-1]
+
+        # Remove second character
+        # Real spectrometer does this for some reason
+        value = value[:1] + value[2:]
+        if len(value) > 14:
+            return (0, "")
+
+        self.wccs[index] = value
+
+        return (index, value)
 
     @staticmethod
     def wrap_response(
