@@ -132,6 +132,11 @@ class FlameController(Controller):
         await super().connect()
         try:
             await self.spec_tel_obj.connect()
+
+            advanced_subcontroller = self.sub_controllers["Advanced"]
+            assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
+            # Turn lamp (incase it wasnt already)
+            asyncio.create_task(advanced_subcontroller.lamp.put(True))
         # May cause issues if spec_tel_obj is updated separately from this object
         # Shouldnt happen due to compositional relationship
         except BaseException as e:
@@ -184,16 +189,3 @@ class FlameController(Controller):
             )
         else:
             self.file_builder.close_file()
-
-    def post_initialise(self):
-        super().post_initialise()
-
-        # Need to update connected AFTER PVs are replaced
-        # PVs are replaced after connect() code is run
-        # So state updates in the initial connect() code will not be realised
-        asyncio.create_task(self.update_connected())
-
-        advanced_subcontroller = self.sub_controllers["Advanced"]
-        assert isinstance(advanced_subcontroller, AdvancedSubcontroller)
-        # Turn lamp (incase it wasnt already)
-        asyncio.create_task(advanced_subcontroller.lamp.put(True))
