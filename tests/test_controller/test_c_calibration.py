@@ -56,7 +56,9 @@ async def test_initialisation(wcc_details, loguru_caplog):
         _,
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
-    assert get_order_attribute(flame_controller, order).get() == round(default_value, 2)
+    assert get_order_attribute(flame_controller, order).get() == round(
+        default_value, 12
+    )
 
 
 @pytest.mark.asyncio
@@ -77,7 +79,7 @@ async def test_set_wcc(wcc_details, loguru_caplog):
     ) = await controller_and_mock_objects(loguru_caplog, spec_tel_mock=spec_tel_mock)
 
     await get_order_attribute(flame_controller, order).put(change_value)
-    spec_tel_mock.set_wcc.assert_awaited_once_with(order, round(change_value, 2))
+    spec_tel_mock.set_wcc.assert_awaited_once_with(order, round(change_value, 12))
 
 
 # Test hidden for now
