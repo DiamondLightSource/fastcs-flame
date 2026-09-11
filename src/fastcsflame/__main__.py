@@ -7,6 +7,7 @@ from pathlib import Path
 from fastcs.launch import FastCS
 from fastcs.logging import configure_logging
 from fastcs.transports.epics import EpicsGUIOptions
+from fastcs.transports.epics.ca import EpicsCATransport
 from fastcs.transports.epics.pva import EpicsPVATransport
 
 from fastcsflame.flame_controller import FlameController
@@ -54,7 +55,9 @@ def main(args: Sequence[str] | None = None) -> None:
         output_dir=SCREEN_GENERATION_OUTPUT_DIRECTORY,
         title=("Flame Spectrometer Controller - " + arguments_object.pvprefix),
     )
-    epics_ca = EpicsPVATransport(gui=gui_options)
+
+    epics_ca = EpicsCATransport(gui=gui_options)
+    epics_pva = EpicsPVATransport(gui=gui_options)
 
     flame_controller = FlameController(
         arguments_object.ip,
@@ -65,7 +68,7 @@ def main(args: Sequence[str] | None = None) -> None:
     )
     flame_controller.set_path([arguments_object.pvprefix])
 
-    fastcs = FastCS(flame_controller, [epics_ca])
+    fastcs = FastCS(flame_controller, [epics_ca, epics_pva])
 
     fastcs.run()
 
